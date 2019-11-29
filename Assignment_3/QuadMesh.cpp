@@ -140,6 +140,8 @@ bool InitMeshQM(QuadMesh* qm, int meshSize, Vector3D origin, double meshLength, 
 		}
 	}
 
+	generateNoise(qm);
+
     ComputeNormalsQM(qm);
 
 	return true;
@@ -283,6 +285,68 @@ void UpdateMesh(QuadMesh* qm, std::vector<Metaball> blobList) {
 		}
 	}
 	ComputeNormalsQM(qm);
+}
+
+
+// Perlin noise
+
+float lerp(float a0, float a1, float w) {
+	return (1.0f - w) * a0 + w * a1;
+}
+
+// Computes the dot product of the distance and gradient vectors.
+float dotGridGradient(int ix, int iy, float x, float y) {
+	
+	int const IYMAX = 64;
+	int const IXMAX = 64;
+
+	// Precomputed (or otherwise) gradient vectors at each grid node
+	float Gradient[IYMAX][IXMAX][2];
+	// Compute the distance vector
+	float dx = x - (float)ix;
+	float dy = y - (float)iy;
+	// Compute the dot-product
+	return (dx * Gradient[iy][ix][0] + dy * Gradient[iy][ix][1]);
+}
+
+// Compute Perlin noise at coordinates x, y
+float perlin(float x, float y) {
+
+	// Determine grid cell coordinates
+	int x0 = (int)x;
+	int x1 = x0 + 1;
+	int y0 = (int)y;
+	int y1 = y0 + 1;
+
+	// Determine interpolation weights
+	// Could also use higher order polynomial/s-curve here
+	float sx = x - (float)x0;
+	float sy = y - (float)y0;
+
+	// Interpolate between grid point gradients
+	float n0, n1, ix0, ix1, value;
+
+	n0 = dotGridGradient(x0, y0, x, y);
+	n1 = dotGridGradient(x1, y0, x, y);
+	ix0 = lerp(n0, n1, sx);
+
+	n0 = dotGridGradient(x0, y1, x, y);
+	n1 = dotGridGradient(x1, y1, x, y);
+	ix1 = lerp(n0, n1, sx);
+
+	value = lerp(ix0, ix1, sy);
+	return value;
+}
+
+void generateNoise(QuadMesh* qm) {
+	for (int i = 0; i < qm->maxMeshSize + 1; i++) {
+		for (int j = 0; j < qm->maxMeshSize + 1; j++) {
+			Vector3D pos = qm->vertices[ i*(qm->maxMeshSize+1)+j ].position;
+			qm->vertices[ i*(qm->maxMeshSize+1)+j ].position.y = 0;
+			printf("i:%d j:%d       %f\n", i, j, perlin(i, j));
+			pos.y = perlin(i + 0.5,j + 0.5);
+		}
+	}
 }
 
 

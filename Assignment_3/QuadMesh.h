@@ -48,4 +48,8 @@ bool InitMeshQM(QuadMesh* qm, int meshSize, Vector3D origin, double meshLength, 
 void DrawMeshQM(QuadMesh* qm, int meshSize);
 void FreeMemoryQM(QuadMesh* qm);
 void UpdateMesh(QuadMesh* qm, std::vector<Metaball> bloblist);
+void generateNoise(QuadMesh* qm);
+float perlin(float x, float y);
+float dotGridGradient(int ix, int iy, float x, float y);
+float lerp(float a0, float a1, float w);
 void ComputeNormalsQM(QuadMesh* qm);

@@ -2,6 +2,7 @@
 #include <iostream>
 #include <math.h>
 #include <vector>
+#include <time.h>
 
 #include <gl/glut.h>
 #include <glm.hpp>
@@ -16,9 +17,40 @@ void reshapeHandler(int, int);
 void keyboardInputHandler(unsigned char, int, int);
 void mouseButtonHandler(int, int, int, int);
 void mouseMotionHandler(int, int);
+void keyboardUp(unsigned char key, int x, int y);
+void idle();
+
+void drawLittleBalckSubmarine();
+void drawPropellor(int pos);
+
+// keyDown flags
+bool isDownW = false;
+bool isDownS = false;
+bool isDownA = false;
+bool isDownD = false;
+bool isDownSpace = false;
+bool isDownC = false;
+
+// Movement stuff
+float subAltitude = 1.0;
+float minAltitude = 1.0;
+float backPropRotation = 0.0f;
+float leftPropRotation = 0.0f;
+float rightPropRotation = 0.0f;
+float rise_decline_angle = 0.0f;
+float max_rise_angle = 20.0f;
+float min_decline_angle = -20.0f;
+float submarineRotation = 0.0;
+float speed = 0.01f;
+float minSpeed = 0.002;
+float maxSpeed = 0.05;
+float xSub = 0.0f;
+float ySub = 0.0f;
 
 // Other
 int mainWindowID;
+int deltaTime = 0;
+int prevTime = 0;
 bool mmDown = false;
 bool rmDown = false;
 bool lmDown = false;
@@ -28,26 +60,15 @@ int ballIndex = 0;
 float ballHeight = 5;
 float ballWidth = 0.1;
 
-// Camera
-int netDiffX = 0; // degrees for yaw
-int netDiffY = -20; // degrees for pitch
-int startX, startY, endX, endY;
-int currDiffX = 0;
-int currDiffY = 0;
-float yaw = 0;
-float pitch = 0;
-float sensitivity = 1;
-float cameraRadius = 32.0;
-
 // Settings
 int vWidth = 1000;
 int vHeight = 800;
 
 // Terrain
 static QuadMesh terrain;
-const int meshSize = 48; // meshSize x meshSize (quads)
-const int meshWidth = 32;
-const int meshLength = 32;
+const int meshSize = 64; // meshSize x meshSize (quads)
+const int meshWidth = 64;
+const int meshLength = 64;
 
 static GLfloat light_position[] = { 100.0F, 100.0F, 0.0F, 1.0F };
 static GLfloat light_diffuse[] = { 1.0, 1.0, 1.0, 1.0 };
@@ -57,6 +78,19 @@ static GLfloat light_ambient[] = { 0.2F, 0.2F, 0.2F, 1.0F };
 static GLfloat surface_ambient[] = { 0.3F, 0.5F, 0.3F, 1.0F };
 static GLfloat surface_specular[] = { 0.1F, 0.35F, 0.1F, 0.5F };
 static GLfloat surface_diffuse[] = { 0.1F, 0.2F, 0.1F, 1.0F };
+
+
+// Material properties
+static GLfloat drone_mat_ambient[] = { 0.1F, 0.1F, 0.1F, 1.0F };
+static GLfloat drone_mat_specular[] = { 0.01F, 0.01F, 0.01F, 1.0F };
+static GLfloat drone_mat_diffuse[] = { 0.05F, 0.05F, 0.05F, 1.0F };
+static GLfloat drone_mat_shininess[] = { 1.0F };
+
+// Blue
+GLfloat drone_blade_mat_ambient[] = { 0.1F, 0.2F, 0.3F, 1.0F };
+GLfloat drone_blade_mat_specular[] = { 0.01F, 0.2F, 0.3F, 1.0F };
+GLfloat drone_blade_mat_diffuse[] = { 0.05F, 0.1F, 0.3F, 1.0F };
+GLfloat drone_blade_mat_shininess[] = { 1.0F };
 
 int main(int argc, char** argv) {
 	glutInit(&argc, argv);
@@ -69,9 +103,11 @@ int main(int argc, char** argv) {
 	// Callbacks
 	glutDisplayFunc(displayHandler);
 	glutReshapeFunc(reshapeHandler);
+	glutIdleFunc(idle);
 	glutMouseFunc(mouseButtonHandler);
 	glutMotionFunc(mouseMotionHandler);
 	glutKeyboardFunc(keyboardInputHandler);
+	glutKeyboardUpFunc(keyboardUp);
 
 	// Enter Main loop
 	glutMainLoop();
@@ -118,18 +154,6 @@ void reshapeHandler(int w, int h) {
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-
-	pitch = -(netDiffY + currDiffY) * DEG2RAD;
-	yaw = (netDiffX + currDiffX) * DEG2RAD;
-
-	gluLookAt(
-		// Camera rotations
-		(GLdouble)(cameraRadius) * (GLdouble)(cos(pitch)) * (GLdouble)(sin(yaw)) + (GLdouble)(meshWidth / 2),
-		(GLdouble)(cameraRadius) * (GLdouble)(sin(pitch)),
-		(GLdouble)(cameraRadius) * (GLdouble)(cos(pitch)) * (GLdouble)(cos(yaw)) - (GLdouble)(meshLength / 2),
-		meshWidth / 2, 0, -meshLength / 2, // LookAt
-		0.0, 1.0, 0 // up vector
-	);
 }
 
 void displayHandler(void) {
@@ -142,60 +166,337 @@ void displayHandler(void) {
 	// Draw ground mesh
 	DrawMeshQM(&terrain, meshSize);
 
+	// Set drone material properties
+	glMaterialfv(GL_FRONT, GL_AMBIENT, drone_mat_ambient);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, drone_mat_specular);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, drone_mat_diffuse);
+	glMaterialfv(GL_FRONT, GL_SHININESS, drone_mat_shininess);
+	glPushMatrix();
+		glTranslatef(xSub, subAltitude, ySub);
+		glRotatef(submarineRotation, 0, 1, 0);
+		drawLittleBalckSubmarine();
+	glPopMatrix();
+
+	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	gluLookAt(
-		// Camera rotations
-		(GLdouble)(cameraRadius) * (GLdouble)(cos(pitch)) * (GLdouble)(sin(yaw)) + (GLdouble)(meshWidth / 2),
-		(GLdouble)(cameraRadius) * (GLdouble)(sin(pitch)),
-		(GLdouble)(cameraRadius) * (GLdouble)(cos(pitch)) * (GLdouble)(cos(yaw)) - (GLdouble)(meshLength / 2),
-		meshWidth / 2, 0, -meshLength / 2, // LookAt
-		0.0, 1.0, 0 // up vector
-	);
+		xSub, subAltitude + 20, ySub + 20,
+		xSub, subAltitude, ySub,
+		0.0, 1.0, 0.0);
+
 	glutSwapBuffers();
 }
 
 // state:0 == keyDown
 void mouseButtonHandler(int button, int state, int x, int y) {
-	// middle mouse (camera rotation)
-	if (button == GLUT_MIDDLE_BUTTON) {
-		if (state == GLUT_DOWN) {
-			mmDown = true;
-			startX = x;
-			startY = y;
-		}
-		else {
-			mmDown = false;
-			netDiffX += currDiffX;
-			netDiffY += currDiffY;
-			currDiffX = 0;
-			currDiffY = 0;
-		}
-	}
-
-	// Camera-Zoom mousewheel
-	if (button == 3 && state == GLUT_DOWN) {
-		cameraRadius -= 0.5;
-	}
-	else if (button == 4 && state == GLUT_DOWN) {
-		cameraRadius += 0.5;
-	}
-
-	glutPostRedisplay();
+	
 }
 
 void mouseMotionHandler(int x, int y) {
-	if (mmDown) {
-		currDiffX = startX - x;
-		currDiffY = startY - y;
-		pitch = -(netDiffY + currDiffY) * DEG2RAD;
-		yaw = (netDiffX + currDiffX) * DEG2RAD;
-		glutPostRedisplay();
-	}
+	
 }
 
 void keyboardInputHandler(unsigned char key, int x, int y) {
-	printf("%d\n", key);
-	if (key == 27) {
+	switch (key) {
+		//esc
+	case 27:
 		glutDestroyWindow(mainWindowID);
+		break;
+	case '-':
+		speed -= 0.002;
+		if (speed < minSpeed) speed = minSpeed;
+		printf("speed: %f\n", speed);
+		break;
+	case '=':
+		speed += 0.002;
+		if (speed > maxSpeed) speed = maxSpeed;
+		printf("speed: %f\n", speed);
+		break;
+	case 'w':
+		if (!isDownW) isDownW = true;
+
+		break;
+	case 's':
+		if (!isDownS) isDownS = true;
+		break;
+	case 'a':
+		if (!isDownA) isDownA = true;
+		break;
+	case 'd':
+		if (!isDownD) isDownD = true;
+		break;
+	case ' ':
+		if (!isDownSpace) isDownSpace = true;
+		break;
+	case 'c':
+		if (!isDownC) isDownC = true;
+		break;
+	default:
+		break;
 	}
 }
+
+void keyboardUp(unsigned char key, int x, int y) {
+	switch (key) {
+	case 'w':
+		if (isDownW) isDownW = false;
+		break;
+	case 's':
+		if (isDownS) isDownS = false;
+		break;
+	case 'a':
+		if (isDownA) isDownA = false;
+		break;
+	case 'd':
+		if (isDownD) isDownD = false;
+		break;
+	case ' ':
+		if (isDownSpace) isDownSpace = false;
+		break;
+	case 'c':
+		if (isDownC) isDownC = false;
+		break;
+	default:
+		break;
+	}
+
+}
+
+
+void idle() {
+	int now = clock();
+	deltaTime = now - prevTime;
+	prevTime = now;
+	//printf("deltaTime: %d\n", deltaTime);
+
+	if (isDownW || isDownS) {
+		if (isDownW) {
+			printf("W...");
+			backPropRotation += deltaTime * speed * 50;
+			leftPropRotation += deltaTime * speed * 50;
+			rightPropRotation += deltaTime * speed * 50;
+			xSub -= deltaTime * speed * sinf(submarineRotation * DEG2RAD);
+			ySub -= deltaTime * speed * cosf(submarineRotation * DEG2RAD);
+		}
+		if (isDownS) {
+			backPropRotation -= deltaTime * speed * 50;
+			leftPropRotation -= deltaTime * speed * 50;
+			rightPropRotation -= deltaTime * speed * 50;
+			xSub += deltaTime * speed * sinf(submarineRotation * DEG2RAD);
+			ySub += deltaTime * speed * cosf(submarineRotation * DEG2RAD);
+		}
+		glutPostRedisplay();
+	}
+	if (isDownA || isDownD) {
+		if (isDownA) {
+			if (submarineRotation > 360) submarineRotation = 0;
+			submarineRotation += deltaTime * speed * 20;
+			leftPropRotation -= deltaTime * speed * 50;
+			rightPropRotation += deltaTime * speed * 50;
+		}
+		if (isDownD) {
+			if (submarineRotation < 0) submarineRotation = 360;
+			submarineRotation -= deltaTime * speed * 20;
+			leftPropRotation += deltaTime * speed * 50;
+			rightPropRotation -= deltaTime * speed * 50;
+		}
+		glutPostRedisplay();
+	}
+	if (isDownSpace || isDownC) {
+		if (isDownSpace) {
+			subAltitude += deltaTime * speed * fabs(rise_decline_angle / max_rise_angle);
+			rise_decline_angle += deltaTime * 0.1;
+			if (rise_decline_angle > max_rise_angle) rise_decline_angle = max_rise_angle;
+		}
+		if (isDownC) {
+			subAltitude -= deltaTime * speed * fabs(rise_decline_angle / min_decline_angle);
+			rise_decline_angle -= deltaTime * 0.1;
+			if (subAltitude < minAltitude) subAltitude = minAltitude;
+			if (rise_decline_angle < min_decline_angle) rise_decline_angle = min_decline_angle;
+		}
+		backPropRotation += deltaTime * 0.2;
+		leftPropRotation += deltaTime * 0.2;
+		rightPropRotation += deltaTime * 0.4;
+		glutPostRedisplay();
+	}
+	else {
+		if (rise_decline_angle != 0) {
+			if (rise_decline_angle > 0) {
+				rise_decline_angle -= deltaTime * 0.1;
+				if (rise_decline_angle < 0) rise_decline_angle = 0;
+			}
+			if (rise_decline_angle < 0) {
+				rise_decline_angle += deltaTime * 0.1;
+				if (rise_decline_angle > 0) rise_decline_angle = 0;
+			}
+		}
+		glutPostRedisplay();
+	}
+
+	if (backPropRotation > 360) backPropRotation = 0;
+	if (backPropRotation < 0) backPropRotation = 360;
+	if (leftPropRotation > 360) leftPropRotation = 0;
+	if (leftPropRotation < 0) leftPropRotation = 360;
+	if (rightPropRotation > 360) rightPropRotation = 0;
+	if (rightPropRotation < 0) rightPropRotation = 360;
+	
+}
+
+void drawLittleBalckSubmarine() {
+	// Body, CTM = IMTR (copy)
+	glPushMatrix();
+
+	glRotatef(rise_decline_angle, 1, 0, 0);
+	// CTM = IMTRT
+	glTranslatef(0, 1, 0);
+	// CTM = IMTRTS
+	glScalef(1.0F, 1.0F, 2.0F);
+	glutSolidSphere(1.0F, 16, 16);
+
+	// CTM = IMTRTST
+	glTranslatef(0, 0, -0.1);
+	// Push matrix here
+	drawPropellor(0);
+
+
+	// Window
+	// CTM = IMTRTS
+	glPushMatrix();
+	glMaterialfv(GL_FRONT, GL_AMBIENT, drone_blade_mat_ambient);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, drone_blade_mat_specular);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, drone_blade_mat_diffuse);
+	glMaterialfv(GL_FRONT, GL_SHININESS, drone_blade_mat_shininess);
+
+	// CTM = IMTRTST
+	glTranslatef(0, 0.4, -0.1);
+	// CTM = IMTRTSTS
+	glScalef(1, 1, 0.75);
+	glutSolidSphere(0.8, 16, 16);
+
+	glMaterialfv(GL_FRONT, GL_AMBIENT, drone_mat_ambient);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, drone_mat_specular);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, drone_mat_diffuse);
+	glMaterialfv(GL_FRONT, GL_SHININESS, drone_mat_shininess);
+	glPopMatrix();
+	// CTM = IMTRTS
+
+	// Left and right wings/propellors
+	glPushMatrix();
+	// CTM = IMTRTSS
+	glScalef(0.85, 0.85, 0.85);
+	// CTM = IMTRTSST
+	glTranslatef(0, 0, -1);
+	// Left propellor
+	glPushMatrix();
+	// CTM = IMTRTSSTT
+	glTranslatef(-1.6, 0, 0);
+	drawPropellor(1);
+	glPopMatrix();
+
+	// Right propellor
+	glPushMatrix();
+	// CTM = IMTRTSSTT
+	glTranslatef(1.6, 0, 0);
+	drawPropellor(2);
+	glPopMatrix();
+	glPopMatrix();
+
+
+
+	glPopMatrix();
+}
+
+void drawPropellor(int pos) {
+	// Propellor
+	// Copy CTM (CTM = IMTRTST)
+	glPushMatrix();
+	// Cone thing and back
+	// Copy CTM (CTM = IMTRTST)
+	glPushMatrix();
+	//GLUquadric* propellorShieldBack;
+	//propellorShieldBack = gluNewQuadric();
+	// CTM = IMTRTSTT
+	glTranslatef(0, 0, 1);
+	//gluDisk(propellorShieldBack, 0, 0.8, 16, 16);
+	// CTM = IMTRTSTTT
+	glTranslatef(0, 0, 0.001);
+	glutSolidCone(0.5, 0.5, 8, 8);
+	glPopMatrix();
+
+	// CTM = IMTRTST
+	glTranslatef(0, 0, 1);
+	GLUquadric* propellorShield;
+	propellorShield = gluNewQuadric();
+	gluCylinder(propellorShield, 0.8F, 0.8F, 0.5F, 16, 16);
+
+	// Blades
+	// Copy CTM (CTM = IMTRTST)
+	glPushMatrix();
+
+	// CTM = IMTRTSTT
+	glTranslatef(0, 0, 0.3);
+	float propellorRotation = 0.0;
+
+	if (pos == 0) {
+		propellorRotation = backPropRotation;
+	}
+	else if (pos == 1) {
+		propellorRotation = leftPropRotation;
+	}
+	else if (pos == 2) {
+		propellorRotation = rightPropRotation;
+	}
+
+	// CTM = IMTRTSTTR
+	glRotatef(propellorRotation, 0, 0, -1);
+
+	GLUquadric* blade1;
+	GLUquadric* blade2;
+	GLUquadric* blade3;
+	GLUquadric* blade4;
+
+	blade2 = gluNewQuadric();
+	blade3 = gluNewQuadric();
+	blade4 = gluNewQuadric();
+	blade1 = gluNewQuadric();
+
+	glMaterialfv(GL_FRONT, GL_AMBIENT, drone_blade_mat_ambient);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, drone_blade_mat_specular);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, drone_blade_mat_diffuse);
+	glMaterialfv(GL_FRONT, GL_SHININESS, drone_blade_mat_shininess);
+
+	//Blade 1
+	glPushMatrix();
+	// CTM = IMTRTSTTRR
+	glRotatef(10, 1, 1, 0);
+	gluPartialDisk(blade1, 0, 0.7f, 8, 8, 0, 80);
+	glPopMatrix();
+	//Blade 2
+	glPushMatrix();
+	// CTM = IMTRTSTTRR
+	glRotatef(10, 1, -1, 0);
+	gluPartialDisk(blade1, 0, 0.7f, 8, 8, 90, 80);
+	glPopMatrix();
+	//Blade 3
+	glPushMatrix();
+	// CTM = IMTRTSTTRR
+	glRotatef(10, -1, -1, 0);
+	gluPartialDisk(blade1, 0, 0.7f, 8, 8, 180, 80);
+	glPopMatrix();
+	//Blade 4
+	glPushMatrix();
+	// CTM = IMTRTSTTRR
+	glRotatef(10, -1, 1, 0);
+	gluPartialDisk(blade1, 0, 0.7f, 8, 8, 270, 80);
+	glPopMatrix();
+
+	glMaterialfv(GL_FRONT, GL_AMBIENT, drone_mat_ambient);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, drone_mat_specular);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, drone_mat_diffuse);
+	glMaterialfv(GL_FRONT, GL_SHININESS, drone_mat_shininess);
+	glPopMatrix();
+	// Blades END
+	glPopMatrix();
+	// Propellor END
+}
+
