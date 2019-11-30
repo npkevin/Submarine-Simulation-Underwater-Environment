@@ -33,7 +33,7 @@ QuadMesh NewQuadMesh(int maxMeshSize)
     qm.mat_specular[3] = 1.0;
     qm.mat_diffuse[0] = 0.75;
     qm.mat_diffuse[1] = 0.5;
-    qm.mat_diffuse[2] = 0.0;
+    qm.mat_diffuse[2] = 0.2;
     qm.mat_diffuse[3] = 1.0;
     qm.mat_shininess[0] = 0.0;
     
@@ -142,7 +142,7 @@ bool InitMeshQM(QuadMesh* qm, int meshSize, Vector3D origin, double meshLength, 
 	}
 
 	// GENEREATE NOISE
-	//generateNoise(qm);
+	generateNoise(qm);
 
 
     ComputeNormalsQM(qm);
@@ -167,38 +167,43 @@ void DrawMeshQM(QuadMesh* qm, int meshSize)
 		{
 			glBegin(GL_QUADS);
 			
+			// 1
 			glNormal3f(qm->quads[currentQuad].vertices[0]->normal.x,
 				       qm->quads[currentQuad].vertices[0]->normal.y,
 					   qm->quads[currentQuad].vertices[0]->normal.z);
-			glTexCoord2f(0,
-						 0);
+			glTexCoord2f(k*(1.0/meshSize),
+						 j*(1.0 / meshSize));
 			glVertex3f(qm->quads[currentQuad].vertices[0]->position.x,
 				       qm->quads[currentQuad].vertices[0]->position.y,
 					   qm->quads[currentQuad].vertices[0]->position.z);
 			
+			// 2
 			glNormal3f(qm->quads[currentQuad].vertices[1]->normal.x,
 				       qm->quads[currentQuad].vertices[1]->normal.y,
 					   qm->quads[currentQuad].vertices[1]->normal.z);
-			glTexCoord2f(0,
-						 1);
+			glTexCoord2f((k+1)*(1.0 / meshSize),
+						 j*(1.0 / meshSize));
 			glVertex3f(qm->quads[currentQuad].vertices[1]->position.x,
 				       qm->quads[currentQuad].vertices[1]->position.y,
 					   qm->quads[currentQuad].vertices[1]->position.z);
 			
+			// 3
 			glNormal3f(qm->quads[currentQuad].vertices[2]->normal.x,
 				       qm->quads[currentQuad].vertices[2]->normal.y,
 					   qm->quads[currentQuad].vertices[2]->normal.z);
-			glTexCoord2f(1,
-						 1);
+			glTexCoord2f((k+1)*(1.0 / meshSize),
+						 (j+1)*(1.0 / meshSize));
 			glVertex3f(qm->quads[currentQuad].vertices[2]->position.x,
 				       qm->quads[currentQuad].vertices[2]->position.y,
 					   qm->quads[currentQuad].vertices[2]->position.z);
 			
+
+			// 4
 			glNormal3f(qm->quads[currentQuad].vertices[3]->normal.x,
 				       qm->quads[currentQuad].vertices[3]->normal.y,
 					   qm->quads[currentQuad].vertices[3]->normal.z);
-			glTexCoord2f(1,
-						 0);
+			glTexCoord2f(k*(1.0 / meshSize),
+						(j+1)*(1.0 / meshSize));
 			glVertex3f(qm->quads[currentQuad].vertices[3]->position.x,
 				       qm->quads[currentQuad].vertices[3]->position.y,
 					   qm->quads[currentQuad].vertices[3]->position.z);
@@ -287,8 +292,8 @@ void UpdateMesh(QuadMesh* qm, std::vector<Metaball> blobList) {
 	for (int i = 0; i < qm->maxMeshSize + 1; i++) {
 		for (int j = 0; j < qm->maxMeshSize + 1; j++) {
 			Vector3D pos = qm->vertices[i * (qm->maxMeshSize + 1) + j].position;
-			qm->vertices[i * (qm->maxMeshSize + 1) + j].position.y = 0;
-			pos.y = 0;
+			//qm->vertices[i * (qm->maxMeshSize + 1) + j].position.y = 0;
+			//pos.y = 0;
 			for (int k = 0; k <= (int)blobList.size() -1; k++) {
 				double distance = sqrt(pow(blobList[k].pos.x - pos.x, 2) + pow(blobList[k].pos.y - pos.y, 2) + pow(blobList[k].pos.z - pos.z, 2));
 				qm->vertices[i * (qm->maxMeshSize + 1) + j].position.y += blobList[k].height * exp(-(blobList[k].width * (distance*distance) ));
@@ -299,7 +304,6 @@ void UpdateMesh(QuadMesh* qm, std::vector<Metaball> blobList) {
 }
 
 void generateNoise(QuadMesh* qm) {
-
 	float noiseScale = 0.1f;
 
 	for (int i = 0; i < qm->maxMeshSize + 1; i++) {

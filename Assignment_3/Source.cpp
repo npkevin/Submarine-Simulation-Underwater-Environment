@@ -47,7 +47,7 @@ float speed = 0.01f;
 float minSpeed = 0.002;
 float maxSpeed = 0.05;
 float xSub = 0.0f;
-float ySub = 0.0f;
+float zSub = 0.0f;
 
 // Other
 int mainWindowID;
@@ -79,17 +79,16 @@ static GLfloat light_diffuse[] = { 1.0, 1.0, 1.0, 1.0 };
 static GLfloat light_specular[] = { 1.0, 1.0, 1.0, 1.0 };
 static GLfloat light_ambient[] = { 0.2F, 0.2F, 0.2F, 1.0F };
 
-static GLfloat surface_ambient[] = { 0.3F, 0.5F, 0.3F, 1.0F };
-static GLfloat surface_specular[] = { 0.1F, 0.35F, 0.1F, 0.5F };
-static GLfloat surface_diffuse[] = { 0.1F, 0.2F, 0.1F, 1.0F };
+//static GLfloat surface_ambient[] = { 0.3F, 0.5F, 0.3F, 1.0F };
+//static GLfloat surface_specular[] = { 0.1F, 0.35F, 0.1F, 0.5F };
+//static GLfloat surface_diffuse[] = { 0.1F, 0.2F, 0.1F, 1.0F };
 
 
-// Material properties
+// DRONE MATERIALS
 static GLfloat drone_mat_ambient[] = { 0.1F, 0.1F, 0.1F, 1.0F };
 static GLfloat drone_mat_specular[] = { 0.01F, 0.01F, 0.01F, 1.0F };
 static GLfloat drone_mat_diffuse[] = { 0.05F, 0.05F, 0.05F, 1.0F };
 static GLfloat drone_mat_shininess[] = { 1.0F };
-
 // Blue
 GLfloat drone_blade_mat_ambient[] = { 0.1F, 0.2F, 0.3F, 1.0F };
 GLfloat drone_blade_mat_specular[] = { 0.01F, 0.2F, 0.3F, 1.0F };
@@ -101,7 +100,7 @@ int main(int argc, char** argv) {
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowSize(vWidth, vHeight);
 	glutInitWindowPosition((glutGet(GLUT_SCREEN_WIDTH) - vWidth) / 2, (glutGet(GLUT_SCREEN_HEIGHT) - vHeight) / 2);
-	mainWindowID = glutCreateWindow("A2 - 500627132, Kevin Nguyen");
+	mainWindowID = glutCreateWindow("A3 - 500627132|Kevin Nguyen, 500646804|Kevin Doung");
 	initOpenGL(vWidth, vHeight);
 
 	// Callbacks
@@ -117,34 +116,6 @@ int main(int argc, char** argv) {
 	glutMainLoop();
 	return 0;
 	return 0;
-}
-
-void readTexel() {
-
-	GLuint texture;
-
-	const char* filePath = "/Users/Kevin/Desktop/sand.bmp";
-	unsigned char* texel;
-	texel = (unsigned char*)malloc(2048 * 2048 * 3);
-	FILE* f;
-	fopen_s(&f, filePath, "rb");
-
-	if (f == NULL) {
-		printf("Failed to open file\n");
-	}
-	else {
-		printf("Opened file!\n");
-	}
-
-	if (fread(texel, 2048 * 2048 * 3, 1, f)) {
-		printf("Read success!\n");
-	}
-
-	glGenTextures(1, &texture);
-	glBindTexture(GL_TEXTURE_2D, texture);
-	
-
-	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2048, 2048, 0, GL_RGB, GL_UNSIGNED_BYTE, texel);
 }
 
 void initOpenGL(int w, int h) {
@@ -171,15 +142,45 @@ void initOpenGL(int w, int h) {
 	Vector3D dir2v = NewVector3D(0.0f, 0.0f, -1.0f);
 	terrain = NewQuadMesh(meshSize);
 
-	InitMeshQM(&terrain, meshSize, origin, meshWidth, meshLength, dir1v, dir2v);
-	
-	readTexel();
 	glEnable(GL_TEXTURE_2D);
+	readTexel();
+	InitMeshQM(&terrain, meshSize, origin, meshWidth, meshLength, dir1v, dir2v);
 
+	// Bloblist premade
+	Metaball b1;
+	Metaball b2;
+	Metaball b3;
+	Metaball b4;
+	Metaball b5;
+	Metaball b6;
+	b1.width = 0.05;
+	b1.height = 10;
+	b1.pos = NewVector3D(41, 0, -11);
+	b2.width = 0.05;
+	b2.height = 10;
+	b2.pos = NewVector3D(7, 0, -54);
+	b3.width = 0.08;
+	b3.height = 10;
+	b3.pos = NewVector3D(19, 0, -28);
+	b4.width = 0.06;
+	b4.height = 7;
+	b4.pos = NewVector3D(35, 0, -26);
+	b5.width = 0.01;
+	b5.height = -5;
+	b5.pos = NewVector3D(3, 0, -20);
+	b6.width = 0.1;
+	b6.height = 20;
+	b6.pos = NewVector3D(14, 0, -53);
+	ballList.push_back(b1); ballList.push_back(b2);
+	ballList.push_back(b3); ballList.push_back(b4);
+	ballList.push_back(b5); ballList.push_back(b6);
+	UpdateMesh(&terrain, ballList);
+
+	
 	Vector3D ambient = NewVector3D(0.0f, 0.05f, 0.0f);
 	Vector3D diffuse = NewVector3D(0.4f, 0.8f, 0.4f);
 	Vector3D specular = NewVector3D(0.04f, 0.04f, 0.04f);
-	SetMaterialQM(&terrain, ambient, diffuse, specular, 0.2);
+	//SetMaterialQM(&terrain, ambient, diffuse, specular, 0.2);
 }
 
 void reshapeHandler(int w, int h) {
@@ -196,34 +197,39 @@ void reshapeHandler(int w, int h) {
 void displayHandler(void) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	glMaterialfv(GL_FRONT, GL_AMBIENT, surface_ambient);
-	glMaterialfv(GL_FRONT, GL_SPECULAR, surface_specular);
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, surface_diffuse);
+	//glMaterialfv(GL_FRONT, GL_AMBIENT, surface_ambient);
+	//glMaterialfv(GL_FRONT, GL_SPECULAR, surface_specular);
+	//glMaterialfv(GL_FRONT, GL_DIFFUSE, surface_diffuse);
 
 	// Draw ground mesh
 	DrawMeshQM(&terrain, meshSize);
-
+	
+	
 	// Set drone material properties
 	glMaterialfv(GL_FRONT, GL_AMBIENT, drone_mat_ambient);
 	glMaterialfv(GL_FRONT, GL_SPECULAR, drone_mat_specular);
 	glMaterialfv(GL_FRONT, GL_DIFFUSE, drone_mat_diffuse);
 	glMaterialfv(GL_FRONT, GL_SHININESS, drone_mat_shininess);
+	
+	glEnable(GL_TEXTURE_GEN_S); //enable texture coordinate generation
+	glEnable(GL_TEXTURE_GEN_T);
 	glPushMatrix();
-		glTranslatef(xSub, subAltitude, ySub);
+		glTranslatef(xSub, subAltitude, zSub);
 		glRotatef(submarineRotation, 0, 1, 0);
 		drawLittleBalckSubmarine();
 	glPopMatrix();
+	glDisable(GL_TEXTURE_GEN_S); //enable texture coordinate generation
+	glDisable(GL_TEXTURE_GEN_T);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	gluLookAt(
-		xSub, subAltitude + 20, ySub + 20,
-		xSub, subAltitude, ySub,
+		xSub, subAltitude + 20, zSub + 20,
+		xSub, subAltitude, zSub,
 		0.0, 1.0, 0.0);
 
 	glutSwapBuffers();
 }
-
 // state:0 == keyDown
 void mouseButtonHandler(int button, int state, int x, int y) {
 	
@@ -299,7 +305,6 @@ void keyboardUp(unsigned char key, int x, int y) {
 
 }
 
-
 void idle() {
 	int now = clock();
 	deltaTime = now - prevTime;
@@ -312,14 +317,14 @@ void idle() {
 			leftPropRotation += deltaTime * speed * 50;
 			rightPropRotation += deltaTime * speed * 50;
 			xSub -= deltaTime * speed * sinf(submarineRotation * DEG2RAD);
-			ySub -= deltaTime * speed * cosf(submarineRotation * DEG2RAD);
+			zSub -= deltaTime * speed * cosf(submarineRotation * DEG2RAD);
 		}
 		if (isDownS) {
 			backPropRotation -= deltaTime * speed * 50;
 			leftPropRotation -= deltaTime * speed * 50;
 			rightPropRotation -= deltaTime * speed * 50;
 			xSub += deltaTime * speed * sinf(submarineRotation * DEG2RAD);
-			ySub += deltaTime * speed * cosf(submarineRotation * DEG2RAD);
+			zSub += deltaTime * speed * cosf(submarineRotation * DEG2RAD);
 		}
 		glutPostRedisplay();
 	}
@@ -536,3 +541,35 @@ void drawPropellor(int pos) {
 	// Propellor END
 }
 
+void readTexel() {
+
+	GLuint texture_id;
+
+	const char* filePath = "/Users/Kevin/Desktop/sand.bmp";
+	unsigned char* texel;
+	texel = (unsigned char*)malloc(2048 * 2048 * 3);
+	FILE* f;
+	fopen_s(&f, filePath, "rb");
+
+	if (f == NULL) {
+		printf("Failed to open file\n");
+	}
+	else {
+		printf("Opened file!\n");
+	}
+
+	if (fread(texel, 2048 * 2048 * 3, 1, f)) {
+		printf("Read success!\n");
+	}
+
+	glGenTextures(1, &texture_id);
+	glBindTexture(GL_TEXTURE_2D, texture_id);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2048, 2048, 0, GL_RGB, GL_UNSIGNED_BYTE, texel);
+}
+
+bool testCollision() {
+	
+	return false;
+}
