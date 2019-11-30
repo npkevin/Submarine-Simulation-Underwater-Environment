@@ -5,6 +5,7 @@
 #include <time.h>
 
 #include <gl/glut.h>
+#include <gl/freeglut_ext.h>
 #include <glm.hpp>
 
 #include "QuadMesh.h"
@@ -19,7 +20,8 @@ void mouseButtonHandler(int, int, int, int);
 void mouseMotionHandler(int, int);
 void keyboardUp(unsigned char key, int x, int y);
 void idle();
-void readTexel();
+unsigned char* readTexel(const char* path);
+void pushPremadeBloblist(void);
 
 void drawLittleBalckSubmarine();
 void drawPropellor(int pos);
@@ -119,6 +121,9 @@ int main(int argc, char** argv) {
 }
 
 void initOpenGL(int w, int h) {
+
+	printf("OpenGL Version: %s\n",glGetString(GL_VERSION));
+
 	// Set up and enable lighting
 	glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
@@ -142,40 +147,20 @@ void initOpenGL(int w, int h) {
 	Vector3D dir2v = NewVector3D(0.0f, 0.0f, -1.0f);
 	terrain = NewQuadMesh(meshSize);
 
+	// Texture-Map terrain
 	glEnable(GL_TEXTURE_2D);
-	readTexel();
+	GLuint texture_id;
+	glGenTextures(1, &texture_id);
+	glBindTexture(GL_TEXTURE_2D, texture_id);
+	unsigned char* texel = readTexel("/Users/Kevin/Desktop/sand.bmp");
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2048, 2048, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, texel);
+	glDisable(GL_TEXTURE_2D);
+
 	InitMeshQM(&terrain, meshSize, origin, meshWidth, meshLength, dir1v, dir2v);
 
-	// Bloblist premade
-	Metaball b1;
-	Metaball b2;
-	Metaball b3;
-	Metaball b4;
-	Metaball b5;
-	Metaball b6;
-	b1.width = 0.05;
-	b1.height = 10;
-	b1.pos = NewVector3D(41, 0, -11);
-	b2.width = 0.05;
-	b2.height = 10;
-	b2.pos = NewVector3D(7, 0, -54);
-	b3.width = 0.08;
-	b3.height = 10;
-	b3.pos = NewVector3D(19, 0, -28);
-	b4.width = 0.06;
-	b4.height = 7;
-	b4.pos = NewVector3D(35, 0, -26);
-	b5.width = 0.01;
-	b5.height = -5;
-	b5.pos = NewVector3D(3, 0, -20);
-	b6.width = 0.1;
-	b6.height = 20;
-	b6.pos = NewVector3D(14, 0, -53);
-	ballList.push_back(b1); ballList.push_back(b2);
-	ballList.push_back(b3); ballList.push_back(b4);
-	ballList.push_back(b5); ballList.push_back(b6);
-	UpdateMesh(&terrain, ballList);
-
+	// Load Premade blobs
+	pushPremadeBloblist();
 	
 	Vector3D ambient = NewVector3D(0.0f, 0.05f, 0.0f);
 	Vector3D diffuse = NewVector3D(0.4f, 0.8f, 0.4f);
@@ -202,7 +187,9 @@ void displayHandler(void) {
 	//glMaterialfv(GL_FRONT, GL_DIFFUSE, surface_diffuse);
 
 	// Draw ground mesh
+	glEnable(GL_TEXTURE_2D);
 	DrawMeshQM(&terrain, meshSize);
+	glDisable(GL_TEXTURE_2D);
 	
 	
 	// Set drone material properties
@@ -211,15 +198,12 @@ void displayHandler(void) {
 	glMaterialfv(GL_FRONT, GL_DIFFUSE, drone_mat_diffuse);
 	glMaterialfv(GL_FRONT, GL_SHININESS, drone_mat_shininess);
 	
-	glEnable(GL_TEXTURE_GEN_S); //enable texture coordinate generation
-	glEnable(GL_TEXTURE_GEN_T);
 	glPushMatrix();
 		glTranslatef(xSub, subAltitude, zSub);
 		glRotatef(submarineRotation, 0, 1, 0);
 		drawLittleBalckSubmarine();
 	glPopMatrix();
-	glDisable(GL_TEXTURE_GEN_S); //enable texture coordinate generation
-	glDisable(GL_TEXTURE_GEN_T);
+	
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -541,32 +525,45 @@ void drawPropellor(int pos) {
 	// Propellor END
 }
 
-void readTexel() {
-
-	GLuint texture_id;
-
-	const char* filePath = "/Users/Kevin/Desktop/sand.bmp";
-	unsigned char* texel;
-	texel = (unsigned char*)malloc(2048 * 2048 * 3);
+unsigned char* readTexel(const char * path) {
+	unsigned char* texel = (unsigned char*)malloc(2048 * 2048 * 3);;
+	// Read image to texel
 	FILE* f;
-	fopen_s(&f, filePath, "rb");
+	fopen_s(&f, path, "rb");
+	fread(texel, 2048 * 2048 * 3, 1, f);
+	return texel;
+}
 
-	if (f == NULL) {
-		printf("Failed to open file\n");
-	}
-	else {
-		printf("Opened file!\n");
-	}
-
-	if (fread(texel, 2048 * 2048 * 3, 1, f)) {
-		printf("Read success!\n");
-	}
-
-	glGenTextures(1, &texture_id);
-	glBindTexture(GL_TEXTURE_2D, texture_id);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	//glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2048, 2048, 0, GL_RGB, GL_UNSIGNED_BYTE, texel);
+void pushPremadeBloblist() {
+	// Bloblist premade
+	Metaball b1;
+	Metaball b2;
+	Metaball b3;
+	Metaball b4;
+	Metaball b5;
+	Metaball b6;
+	b1.width = 0.05;
+	b1.height = 10;
+	b1.pos = NewVector3D(41, 0, -11);
+	b2.width = 0.05;
+	b2.height = 10;
+	b2.pos = NewVector3D(7, 0, -54);
+	b3.width = 0.08;
+	b3.height = 10;
+	b3.pos = NewVector3D(19, 0, -28);
+	b4.width = 0.06;
+	b4.height = 7;
+	b4.pos = NewVector3D(35, 0, -26);
+	b5.width = 0.01;
+	b5.height = -5;
+	b5.pos = NewVector3D(3, 0, -20);
+	b6.width = 0.1;
+	b6.height = 20;
+	b6.pos = NewVector3D(14, 0, -53);
+	ballList.push_back(b1); ballList.push_back(b2);
+	ballList.push_back(b3); ballList.push_back(b4);
+	ballList.push_back(b5); ballList.push_back(b6);
+	UpdateMesh(&terrain, ballList);
 }
 
 bool testCollision() {

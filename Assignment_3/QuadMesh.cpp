@@ -23,17 +23,17 @@ QuadMesh NewQuadMesh(int maxMeshSize)
 	CreateMemoryQM(&qm);
 
 	// Set up default material used for the mesh
-	qm.mat_ambient[0] = 0.0;
-    qm.mat_ambient[1] = 0.0;
-    qm.mat_ambient[2] = 0.0;
+	qm.mat_ambient[0] = 1.0;
+    qm.mat_ambient[1] = 1.0;
+    qm.mat_ambient[2] = 1.0;
     qm.mat_ambient[3] = 1.0;
-    qm.mat_specular[0] = 0.0;
-    qm.mat_specular[1] = 0.0;
-    qm.mat_specular[2] = 0.0;
+    qm.mat_specular[0] = 1.0;
+    qm.mat_specular[1] = 1.0;
+    qm.mat_specular[2] = 1.0;
     qm.mat_specular[3] = 1.0;
-    qm.mat_diffuse[0] = 0.75;
-    qm.mat_diffuse[1] = 0.5;
-    qm.mat_diffuse[2] = 0.2;
+    qm.mat_diffuse[0] = 1.0;
+    qm.mat_diffuse[1] = 1.0;
+    qm.mat_diffuse[2] = 1.0;
     qm.mat_diffuse[3] = 1.0;
     qm.mat_shininess[0] = 0.0;
     
