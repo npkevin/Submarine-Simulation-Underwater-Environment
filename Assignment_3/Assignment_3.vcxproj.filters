@@ -32,5 +32,8 @@
     <ClInclude Include="Vector3D.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="PerlinNoise.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

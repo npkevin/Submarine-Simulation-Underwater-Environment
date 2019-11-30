@@ -19,9 +19,11 @@ void mouseButtonHandler(int, int, int, int);
 void mouseMotionHandler(int, int);
 void keyboardUp(unsigned char key, int x, int y);
 void idle();
+void readTexel();
 
 void drawLittleBalckSubmarine();
 void drawPropellor(int pos);
+GLuint texture_id;
 
 // keyDown flags
 bool isDownW = false;
@@ -70,6 +72,8 @@ const int meshSize = 64; // meshSize x meshSize (quads)
 const int meshWidth = 64;
 const int meshLength = 64;
 
+GLubyte* texel;
+
 static GLfloat light_position[] = { 100.0F, 100.0F, 0.0F, 1.0F };
 static GLfloat light_diffuse[] = { 1.0, 1.0, 1.0, 1.0 };
 static GLfloat light_specular[] = { 1.0, 1.0, 1.0, 1.0 };
@@ -115,6 +119,34 @@ int main(int argc, char** argv) {
 	return 0;
 }
 
+void readTexel() {
+
+	GLuint texture;
+
+	const char* filePath = "/Users/Kevin/Desktop/sand.bmp";
+	unsigned char* texel;
+	texel = (unsigned char*)malloc(2048 * 2048 * 3);
+	FILE* f;
+	fopen_s(&f, filePath, "rb");
+
+	if (f == NULL) {
+		printf("Failed to open file\n");
+	}
+	else {
+		printf("Opened file!\n");
+	}
+
+	if (fread(texel, 2048 * 2048 * 3, 1, f)) {
+		printf("Read success!\n");
+	}
+
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	
+
+	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2048, 2048, 0, GL_RGB, GL_UNSIGNED_BYTE, texel);
+}
+
 void initOpenGL(int w, int h) {
 	// Set up and enable lighting
 	glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
@@ -124,6 +156,7 @@ void initOpenGL(int w, int h) {
 
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0);
+
 
 	glEnable(GL_DEPTH_TEST);   // Remove hidded surfaces
 	glShadeModel(GL_SMOOTH);   // Use smooth shading, makes boundaries between polygons harder to see 
@@ -137,7 +170,11 @@ void initOpenGL(int w, int h) {
 	Vector3D dir1v = NewVector3D(1.0f, 0.0f, 0.0f);
 	Vector3D dir2v = NewVector3D(0.0f, 0.0f, -1.0f);
 	terrain = NewQuadMesh(meshSize);
+
 	InitMeshQM(&terrain, meshSize, origin, meshWidth, meshLength, dir1v, dir2v);
+	
+	readTexel();
+	glEnable(GL_TEXTURE_2D);
 
 	Vector3D ambient = NewVector3D(0.0f, 0.05f, 0.0f);
 	Vector3D diffuse = NewVector3D(0.4f, 0.8f, 0.4f);
@@ -271,7 +308,6 @@ void idle() {
 
 	if (isDownW || isDownS) {
 		if (isDownW) {
-			printf("W...");
 			backPropRotation += deltaTime * speed * 50;
 			leftPropRotation += deltaTime * speed * 50;
 			rightPropRotation += deltaTime * speed * 50;

@@ -133,6 +133,7 @@
     <ClCompile Include="Vector3D.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="PerlinNoise.hpp" />
     <ClInclude Include="QuadMesh.h" />
     <ClInclude Include="Vector3D.h" />
   </ItemGroup>

@@ -8,11 +8,17 @@ typedef struct Metaball {
 } Metaball;
 
 
+typedef struct UVMap {
+	float u;
+	float v;
+};
+
 // Data structure for a vertex
 typedef struct MeshVertex
 {
 	Vector3D position;
 	Vector3D normal;
+	UVMap texCoord;
 } MeshVertex;
 
 // Data structure for a quad (4-sided polygon)
