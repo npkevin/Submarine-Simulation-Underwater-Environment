@@ -6,6 +6,7 @@
 
 #include <gl/glut.h>
 #include <gl/freeglut_ext.h>
+#include <gl/freeglut_std.h>
 #include <glm.hpp>
 
 #include "QuadMesh.h"
@@ -20,12 +21,21 @@ void mouseButtonHandler(int, int, int, int);
 void mouseMotionHandler(int, int);
 void keyboardUp(unsigned char key, int x, int y);
 void idle();
+void loadAllTextures(void);
 unsigned char* readTexel(const char* path);
 void pushPremadeBloblist(void);
 
 void drawLittleBalckSubmarine();
 void drawPropellor(int pos);
-GLuint texture_id;
+
+//Textures
+GLuint sandTexture_id;
+unsigned char* sand;
+GLuint metalTexture_id;
+unsigned char* metal;
+GLuint glassTexture_id;
+unsigned char* glass;
+
 
 // keyDown flags
 bool isDownW = false;
@@ -50,6 +60,7 @@ float minSpeed = 0.002;
 float maxSpeed = 0.05;
 float xSub = 0.0f;
 float zSub = 0.0f;
+float zoom = 15.0;
 
 // Other
 int mainWindowID;
@@ -70,20 +81,14 @@ int vHeight = 800;
 
 // Terrain
 static QuadMesh terrain;
-const int meshSize = 64; // meshSize x meshSize (quads)
-const int meshWidth = 64;
-const int meshLength = 64;
-
-GLubyte* texel;
+const int meshSize = 128; // meshSize x meshSize (quads)
+const int meshWidth = 256;
+const int meshLength = 256;
 
 static GLfloat light_position[] = { 100.0F, 100.0F, 0.0F, 1.0F };
 static GLfloat light_diffuse[] = { 1.0, 1.0, 1.0, 1.0 };
 static GLfloat light_specular[] = { 1.0, 1.0, 1.0, 1.0 };
 static GLfloat light_ambient[] = { 0.2F, 0.2F, 0.2F, 1.0F };
-
-//static GLfloat surface_ambient[] = { 0.3F, 0.5F, 0.3F, 1.0F };
-//static GLfloat surface_specular[] = { 0.1F, 0.35F, 0.1F, 0.5F };
-//static GLfloat surface_diffuse[] = { 0.1F, 0.2F, 0.1F, 1.0F };
 
 
 // DRONE MATERIALS
@@ -96,6 +101,8 @@ GLfloat drone_blade_mat_ambient[] = { 0.1F, 0.2F, 0.3F, 1.0F };
 GLfloat drone_blade_mat_specular[] = { 0.01F, 0.2F, 0.3F, 1.0F };
 GLfloat drone_blade_mat_diffuse[] = { 0.05F, 0.1F, 0.3F, 1.0F };
 GLfloat drone_blade_mat_shininess[] = { 1.0F };
+
+GLfloat noMaterial[] = { 1.0F, 1.0F, 1.0F, 1.0F };
 
 int main(int argc, char** argv) {
 	glutInit(&argc, argv);
@@ -123,6 +130,7 @@ int main(int argc, char** argv) {
 void initOpenGL(int w, int h) {
 
 	printf("OpenGL Version: %s\n",glGetString(GL_VERSION));
+	loadAllTextures();
 
 	// Set up and enable lighting
 	glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
@@ -132,7 +140,6 @@ void initOpenGL(int w, int h) {
 
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0);
-
 
 	glEnable(GL_DEPTH_TEST);   // Remove hidded surfaces
 	glShadeModel(GL_SMOOTH);   // Use smooth shading, makes boundaries between polygons harder to see 
@@ -147,16 +154,11 @@ void initOpenGL(int w, int h) {
 	Vector3D dir2v = NewVector3D(0.0f, 0.0f, -1.0f);
 	terrain = NewQuadMesh(meshSize);
 
-	// Texture-Map terrain
+	// Enable Texture-Mapping
 	glEnable(GL_TEXTURE_2D);
-	GLuint texture_id;
-	glGenTextures(1, &texture_id);
-	glBindTexture(GL_TEXTURE_2D, texture_id);
-	unsigned char* texel = readTexel("/Users/Kevin/Desktop/sand.bmp");
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2048, 2048, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, texel);
-	glDisable(GL_TEXTURE_2D);
 
+	// Terrain
+	glBindTexture(GL_TEXTURE_2D, sandTexture_id);
 	InitMeshQM(&terrain, meshSize, origin, meshWidth, meshLength, dir1v, dir2v);
 
 	// Load Premade blobs
@@ -177,26 +179,21 @@ void reshapeHandler(int w, int h) {
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
+	gluLookAt(
+		xSub + sin(submarineRotation * DEG2RAD) * zoom, subAltitude + 8, zSub + cos(submarineRotation * DEG2RAD) * zoom,
+		xSub, subAltitude, zSub,
+		0.0, 1.0, 0.0);
 }
 
 void displayHandler(void) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	//glMaterialfv(GL_FRONT, GL_AMBIENT, surface_ambient);
-	//glMaterialfv(GL_FRONT, GL_SPECULAR, surface_specular);
-	//glMaterialfv(GL_FRONT, GL_DIFFUSE, surface_diffuse);
+
+	glMatrixMode(GL_MODELVIEW);
 
 	// Draw ground mesh
-	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, sandTexture_id);
 	DrawMeshQM(&terrain, meshSize);
-	glDisable(GL_TEXTURE_2D);
-	
-	
-	// Set drone material properties
-	glMaterialfv(GL_FRONT, GL_AMBIENT, drone_mat_ambient);
-	glMaterialfv(GL_FRONT, GL_SPECULAR, drone_mat_specular);
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, drone_mat_diffuse);
-	glMaterialfv(GL_FRONT, GL_SHININESS, drone_mat_shininess);
 	
 	glPushMatrix();
 		glTranslatef(xSub, subAltitude, zSub);
@@ -204,14 +201,11 @@ void displayHandler(void) {
 		drawLittleBalckSubmarine();
 	glPopMatrix();
 	
-
-	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	gluLookAt(
-		xSub, subAltitude + 20, zSub + 20,
+		xSub + sin(submarineRotation * DEG2RAD)*zoom, subAltitude + 8, zSub + cos(submarineRotation * DEG2RAD)*zoom,
 		xSub, subAltitude, zSub,
 		0.0, 1.0, 0.0);
-
 	glutSwapBuffers();
 }
 // state:0 == keyDown
@@ -354,8 +348,9 @@ void idle() {
 				rise_decline_angle += deltaTime * 0.1;
 				if (rise_decline_angle > 0) rise_decline_angle = 0;
 			}
+			glutPostRedisplay();
+
 		}
-		glutPostRedisplay();
 	}
 
 	if (backPropRotation > 360) backPropRotation = 0;
@@ -368,159 +363,128 @@ void idle() {
 }
 
 void drawLittleBalckSubmarine() {
-	// Body, CTM = IMTR (copy)
 	glPushMatrix();
+		// Body
+		glRotatef(rise_decline_angle, 1, 0, 0);
+		glTranslatef(0, 1, 0);
+		glScalef(1.0F, 1.0F, 2.0F);
+		// Select metal as Texture
+		glBindTexture(GL_TEXTURE_2D, metalTexture_id);
+		GLUquadricObj* body = gluNewQuadric();
+		gluQuadricTexture(body, GL_TRUE);
+		gluSphere(body, 1.0F, 16, 16);
 
-	glRotatef(rise_decline_angle, 1, 0, 0);
-	// CTM = IMTRT
-	glTranslatef(0, 1, 0);
-	// CTM = IMTRTS
-	glScalef(1.0F, 1.0F, 2.0F);
-	glutSolidSphere(1.0F, 16, 16);
+		glTranslatef(0, 0, -0.1);
+		drawPropellor(0);
 
-	// CTM = IMTRTST
-	glTranslatef(0, 0, -0.1);
-	// Push matrix here
-	drawPropellor(0);
+		// Window
+		glPushMatrix();
+			glTranslatef(0, 0.4, -0.1);
+			glScalef(1, 1, 0.75);
+			GLUquadricObj* window = gluNewQuadric();
+			gluSphere(window, 0.8, 16, 16);
+		glPopMatrix();
 
-
-	// Window
-	// CTM = IMTRTS
-	glPushMatrix();
-	glMaterialfv(GL_FRONT, GL_AMBIENT, drone_blade_mat_ambient);
-	glMaterialfv(GL_FRONT, GL_SPECULAR, drone_blade_mat_specular);
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, drone_blade_mat_diffuse);
-	glMaterialfv(GL_FRONT, GL_SHININESS, drone_blade_mat_shininess);
-
-	// CTM = IMTRTST
-	glTranslatef(0, 0.4, -0.1);
-	// CTM = IMTRTSTS
-	glScalef(1, 1, 0.75);
-	glutSolidSphere(0.8, 16, 16);
-
-	glMaterialfv(GL_FRONT, GL_AMBIENT, drone_mat_ambient);
-	glMaterialfv(GL_FRONT, GL_SPECULAR, drone_mat_specular);
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, drone_mat_diffuse);
-	glMaterialfv(GL_FRONT, GL_SHININESS, drone_mat_shininess);
-	glPopMatrix();
-	// CTM = IMTRTS
-
-	// Left and right wings/propellors
-	glPushMatrix();
-	// CTM = IMTRTSS
-	glScalef(0.85, 0.85, 0.85);
-	// CTM = IMTRTSST
-	glTranslatef(0, 0, -1);
-	// Left propellor
-	glPushMatrix();
-	// CTM = IMTRTSSTT
-	glTranslatef(-1.6, 0, 0);
-	drawPropellor(1);
-	glPopMatrix();
-
-	// Right propellor
-	glPushMatrix();
-	// CTM = IMTRTSSTT
-	glTranslatef(1.6, 0, 0);
-	drawPropellor(2);
-	glPopMatrix();
-	glPopMatrix();
-
-
-
+		// Left and right wings/propellors
+		glPushMatrix();
+			glScalef(0.85, 0.85, 0.85);
+			glTranslatef(0, 0, -1);
+			// Left propellor
+			glPushMatrix();
+				glTranslatef(-1.6, 0, 0);
+				drawPropellor(1);
+			glPopMatrix();
+			// Right propellor
+			glPushMatrix();
+				glTranslatef(1.6, 0, 0);
+				drawPropellor(2);
+			glPopMatrix();
+		glPopMatrix();
 	glPopMatrix();
 }
 
 void drawPropellor(int pos) {
 	// Propellor
-	// Copy CTM (CTM = IMTRTST)
 	glPushMatrix();
-	// Cone thing and back
-	// Copy CTM (CTM = IMTRTST)
-	glPushMatrix();
-	//GLUquadric* propellorShieldBack;
-	//propellorShieldBack = gluNewQuadric();
-	// CTM = IMTRTSTT
-	glTranslatef(0, 0, 1);
-	//gluDisk(propellorShieldBack, 0, 0.8, 16, 16);
-	// CTM = IMTRTSTTT
-	glTranslatef(0, 0, 0.001);
-	glutSolidCone(0.5, 0.5, 8, 8);
-	glPopMatrix();
+		// Cone thing and back
+		glPushMatrix();
+			//GLUquadric* propellorShieldBack;
+			//propellorShieldBack = gluNewQuadric();
+			glTranslatef(0, 0, 1);
+			//gluDisk(propellorShieldBack, 0, 0.8, 16, 16);
+			glTranslatef(0, 0, 0.001);
+			glutSolidCone(0.5, 0.5, 8, 8);
+		glPopMatrix();
 
-	// CTM = IMTRTST
-	glTranslatef(0, 0, 1);
-	GLUquadric* propellorShield;
-	propellorShield = gluNewQuadric();
-	gluCylinder(propellorShield, 0.8F, 0.8F, 0.5F, 16, 16);
+		glTranslatef(0, 0, 1);
 
-	// Blades
-	// Copy CTM (CTM = IMTRTST)
-	glPushMatrix();
+		glBindTexture(GL_TEXTURE_2D, metalTexture_id);
+		GLUquadricObj* propellorShield;
+		propellorShield = gluNewQuadric();
+		gluQuadricTexture(propellorShield, GL_TRUE);
+		gluCylinder(propellorShield, 0.8F, 0.8F, 0.5F, 16, 16);
 
-	// CTM = IMTRTSTT
-	glTranslatef(0, 0, 0.3);
-	float propellorRotation = 0.0;
+		// Blades
+		glPushMatrix();
 
-	if (pos == 0) {
-		propellorRotation = backPropRotation;
-	}
-	else if (pos == 1) {
-		propellorRotation = leftPropRotation;
-	}
-	else if (pos == 2) {
-		propellorRotation = rightPropRotation;
-	}
+			glTranslatef(0, 0, 0.3);
+			float propellorRotation = 0.0;
 
-	// CTM = IMTRTSTTR
-	glRotatef(propellorRotation, 0, 0, -1);
+			if (pos == 0) {
+				propellorRotation = backPropRotation;
+			}
+			else if (pos == 1) {
+				propellorRotation = leftPropRotation;
+			}
+			else if (pos == 2) {
+				propellorRotation = rightPropRotation;
+			}
 
-	GLUquadric* blade1;
-	GLUquadric* blade2;
-	GLUquadric* blade3;
-	GLUquadric* blade4;
+			glRotatef(propellorRotation, 0, 0, -1);
 
-	blade2 = gluNewQuadric();
-	blade3 = gluNewQuadric();
-	blade4 = gluNewQuadric();
-	blade1 = gluNewQuadric();
+			GLUquadric* blade1;
+			GLUquadric* blade2;
+			GLUquadric* blade3;
+			GLUquadric* blade4;
 
-	glMaterialfv(GL_FRONT, GL_AMBIENT, drone_blade_mat_ambient);
-	glMaterialfv(GL_FRONT, GL_SPECULAR, drone_blade_mat_specular);
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, drone_blade_mat_diffuse);
-	glMaterialfv(GL_FRONT, GL_SHININESS, drone_blade_mat_shininess);
+			blade2 = gluNewQuadric();
+			blade3 = gluNewQuadric();
+			blade4 = gluNewQuadric();
+			blade1 = gluNewQuadric();
 
-	//Blade 1
-	glPushMatrix();
-	// CTM = IMTRTSTTRR
-	glRotatef(10, 1, 1, 0);
-	gluPartialDisk(blade1, 0, 0.7f, 8, 8, 0, 80);
-	glPopMatrix();
-	//Blade 2
-	glPushMatrix();
-	// CTM = IMTRTSTTRR
-	glRotatef(10, 1, -1, 0);
-	gluPartialDisk(blade1, 0, 0.7f, 8, 8, 90, 80);
-	glPopMatrix();
-	//Blade 3
-	glPushMatrix();
-	// CTM = IMTRTSTTRR
-	glRotatef(10, -1, -1, 0);
-	gluPartialDisk(blade1, 0, 0.7f, 8, 8, 180, 80);
-	glPopMatrix();
-	//Blade 4
-	glPushMatrix();
-	// CTM = IMTRTSTTRR
-	glRotatef(10, -1, 1, 0);
-	gluPartialDisk(blade1, 0, 0.7f, 8, 8, 270, 80);
-	glPopMatrix();
+			glMaterialfv(GL_FRONT, GL_AMBIENT, drone_blade_mat_ambient);
+			glMaterialfv(GL_FRONT, GL_SPECULAR, drone_blade_mat_specular);
+			glMaterialfv(GL_FRONT, GL_DIFFUSE, drone_blade_mat_diffuse);
+			glMaterialfv(GL_FRONT, GL_SHININESS, drone_blade_mat_shininess);
 
-	glMaterialfv(GL_FRONT, GL_AMBIENT, drone_mat_ambient);
-	glMaterialfv(GL_FRONT, GL_SPECULAR, drone_mat_specular);
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, drone_mat_diffuse);
-	glMaterialfv(GL_FRONT, GL_SHININESS, drone_mat_shininess);
-	glPopMatrix();
-	// Blades END
+			//Blade 1
+			glPushMatrix();
+				glRotatef(10, 1, 1, 0);
+				gluPartialDisk(blade1, 0, 0.7f, 8, 8, 0, 80);
+			glPopMatrix();
+			//Blade 2
+			glPushMatrix();
+				glRotatef(10, 1, -1, 0);
+				gluPartialDisk(blade1, 0, 0.7f, 8, 8, 90, 80);
+			glPopMatrix();
+			//Blade 3
+			glPushMatrix();
+				glRotatef(10, -1, -1, 0);
+				gluPartialDisk(blade1, 0, 0.7f, 8, 8, 180, 80);
+			glPopMatrix();
+			//Blade 4
+			glPushMatrix();
+				glRotatef(10, -1, 1, 0);
+				gluPartialDisk(blade1, 0, 0.7f, 8, 8, 270, 80);
+			glPopMatrix();
+
+			glMaterialfv(GL_FRONT, GL_AMBIENT, noMaterial);
+			glMaterialfv(GL_FRONT, GL_SPECULAR, noMaterial);
+			glMaterialfv(GL_FRONT, GL_DIFFUSE, noMaterial);
+			glMaterialfv(GL_FRONT, GL_SHININESS, noMaterial);
+
+		glPopMatrix();
+		// Blades END
 	glPopMatrix();
 	// Propellor END
 }
@@ -532,6 +496,34 @@ unsigned char* readTexel(const char * path) {
 	fopen_s(&f, path, "rb");
 	fread(texel, 2048 * 2048 * 3, 1, f);
 	return texel;
+}
+
+void loadAllTextures(void) {
+	
+	// Create texture
+	glGenTextures(1, &sandTexture_id);
+	// Select created texture
+	glBindTexture(GL_TEXTURE_2D, sandTexture_id);
+	// scan image to memory
+	sand = readTexel("/Users/Kevin/Desktop/sand.bmp");
+	// Texture Parameters (for sandTexture_id)
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	// Prepare texture (for sandTexture_id)
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2048, 2048, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, sand);
+
+	//metal
+	glGenTextures(1, &metalTexture_id);
+	glBindTexture(GL_TEXTURE_2D, metalTexture_id);
+	metal = readTexel("/Users/Kevin/Desktop/metal.bmp");
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 280, 280, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, metal);
+
+	//window
+	glGenTextures(1, &glassTexture_id);
+	glBindTexture(GL_TEXTURE_2D, glassTexture_id);
+	glass = readTexel("/Users/Kevin/Desktop/glass.bmp");
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 432, 432, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, glass);
 }
 
 void pushPremadeBloblist() {

@@ -155,7 +155,7 @@ void DrawMeshQM(QuadMesh* qm, int meshSize)
 {
 	int currentQuad=0;
 
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); //GL_LINE = wireframe, GL_FILL = solid
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); //GL_LINE = wireframe, GL_FILL = solid
 	glMaterialfv(GL_FRONT, GL_AMBIENT, qm->mat_ambient);
 	glMaterialfv(GL_FRONT, GL_SPECULAR, qm->mat_specular);
 	glMaterialfv(GL_FRONT, GL_DIFFUSE, qm->mat_diffuse);
@@ -286,8 +286,6 @@ void ComputeNormalsQM(QuadMesh* qm)
 	}
 }
 
-
-
 void UpdateMesh(QuadMesh* qm, std::vector<Metaball> blobList) {
 	for (int i = 0; i < qm->maxMeshSize + 1; i++) {
 		for (int j = 0; j < qm->maxMeshSize + 1; j++) {
@@ -304,7 +302,7 @@ void UpdateMesh(QuadMesh* qm, std::vector<Metaball> blobList) {
 }
 
 void generateNoise(QuadMesh* qm) {
-	float noiseScale = 0.1f;
+	float noiseScale = 0.05f;
 
 	for (int i = 0; i < qm->maxMeshSize + 1; i++) {
 		for (int j = 0; j < qm->maxMeshSize + 1; j++) {
