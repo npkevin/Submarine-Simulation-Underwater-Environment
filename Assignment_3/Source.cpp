@@ -8,6 +8,7 @@
 #include <gl/freeglut_ext.h>
 #include <gl/freeglut_std.h>
 #include <glm.hpp>
+#include "PerlinNoise.hpp"
 
 #include "QuadMesh.h"
 
@@ -48,7 +49,7 @@ bool isDownC = false;
 
 // Movement stuff
 
-float minAltitude = 1.0;
+float minAltitude = -5.0;
 float backPropRotation = 0.0f;
 float leftPropRotation = 0.0f;
 float rightPropRotation = 0.0f;
@@ -562,14 +563,22 @@ void pushPremadeBloblist() {
 
 bool testBlobCollision(void) {
 	float distance;
-	float subHitSphere = 3.0;
+	float noiseScale = 0.05f;
+
 	for (int i = 0; i < ballList.size(); i++) {
 		distance = glm::distance(glm::vec3(subPosition.x, 0, subPosition.z), ballList[i].pos);
+		PerlinNoise perl = PerlinNoise(1337);
+		float height = 3 * perl.noise(subPosition.x * noiseScale, subPosition.z * noiseScale);
 		// Collision detection
-		if (subPosition.y < ballList[i].height * exp(-(ballList[i].width * (distance * distance))) && ballList[i].height > 0) {
-			printf("Colliding with first blob[%d], width: %f\n", i, ballList[i].width);
+
+		if (subPosition.y < ballList[i].height * exp(-(ballList[i].width * (distance * distance))) + height && ballList[i].height > 0) {
+			selfDestruct();
 			return true;
 		}
 	}
 	return false;
+}
+
+void selfDestruct() {
+
 }
