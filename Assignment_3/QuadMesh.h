@@ -22,6 +22,7 @@ typedef struct MeshVertex
 	UVMap texCoord;
 } MeshVertex;
 
+
 // Data structure for a quad (4-sided polygon)
 typedef struct MeshQuad
 {

@@ -105,6 +105,15 @@ GLfloat drone_blade_mat_shininess[] = { 1.0F };
 
 GLfloat noMaterial[] = { 1.0F, 1.0F, 1.0F, 1.0F };
 
+
+typedef struct EnemySubmarine
+{
+	Vector3D position;
+} EnemySubmarine;
+
+
+std::vector<EnemySubmarine> subList;
+
 int main(int argc, char** argv) {
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
@@ -203,6 +212,24 @@ void displayHandler(void) {
 		glRotatef(submarineRotation, 0, 1, 0);
 		drawLittleBalckSubmarine();
 	glPopMatrix();
+
+	//int i = 0;
+
+	EnemySubmarine s0;
+	EnemySubmarine s1;
+	int i;
+	s0.position = NewVector3D(20, 0, -20);
+	s1.position = NewVector3D(25, 0, -25);
+	subList.push_back(s0);
+	subList.push_back(s1);
+	for (i = 0; i < subList.size() ; i++) {
+
+		glPushMatrix();
+		glTranslatef(subList[i].position.x, subList[i].position.y, subList[i].position.z);
+		glRotatef(0, 0, 1, 0);
+		drawLittleBalckSubmarine();
+		glPopMatrix();
+	}
 	
 	glLoadIdentity();
 	gluLookAt(
