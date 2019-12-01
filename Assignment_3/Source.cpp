@@ -26,6 +26,7 @@ void loadAllTextures(void);
 unsigned char* readTexel(const char* path);
 void pushPremadeBloblist(void);
 bool testBlobCollision(void);
+void selfDestruct(void);
 
 void drawLittleBalckSubmarine();
 void drawPropellor(int pos);
@@ -108,7 +109,7 @@ GLfloat noMaterial[] = { 1.0F, 1.0F, 1.0F, 1.0F };
 
 typedef struct EnemySubmarine
 {
-	Vector3D position;
+	glm::vec3 position;
 } EnemySubmarine;
 
 
@@ -173,6 +174,16 @@ void initOpenGL(int w, int h) {
 
 	// Load Premade blobs
 	pushPremadeBloblist();
+
+
+	// Premade enemy list
+	EnemySubmarine s0;
+	EnemySubmarine s1;
+	s0.position = glm::vec3(20, 0, -20);
+	s1.position = glm::vec3(25, 0, -25);
+	subList.push_back(s0);
+	subList.push_back(s1);
+
 	
 	Vector3D ambient = NewVector3D(0.0f, 0.05f, 0.0f);
 	Vector3D diffuse = NewVector3D(0.4f, 0.8f, 0.4f);
@@ -213,16 +224,8 @@ void displayHandler(void) {
 		drawLittleBalckSubmarine();
 	glPopMatrix();
 
-	//int i = 0;
 
-	EnemySubmarine s0;
-	EnemySubmarine s1;
-	int i;
-	s0.position = NewVector3D(20, 0, -20);
-	s1.position = NewVector3D(25, 0, -25);
-	subList.push_back(s0);
-	subList.push_back(s1);
-	for (i = 0; i < subList.size() ; i++) {
+	for (int i = 0; i < subList.size() ; i++) {
 
 		glPushMatrix();
 		glTranslatef(subList[i].position.x, subList[i].position.y, subList[i].position.z);
