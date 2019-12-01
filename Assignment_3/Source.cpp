@@ -24,6 +24,7 @@ void idle();
 void loadAllTextures(void);
 unsigned char* readTexel(const char* path);
 void pushPremadeBloblist(void);
+bool testBlobCollision(void);
 
 void drawLittleBalckSubmarine();
 void drawPropellor(int pos);
@@ -46,7 +47,7 @@ bool isDownSpace = false;
 bool isDownC = false;
 
 // Movement stuff
-float subAltitude = 1.0;
+
 float minAltitude = 1.0;
 float backPropRotation = 0.0f;
 float leftPropRotation = 0.0f;
@@ -58,8 +59,7 @@ float submarineRotation = 0.0;
 float speed = 0.01f;
 float minSpeed = 0.002;
 float maxSpeed = 0.05;
-float xSub = 0.0f;
-float zSub = 0.0f;
+glm::vec3 subPosition = glm::vec3(0.0f, 1.0f, 0.0f);
 float zoom = 15.0;
 
 // Other
@@ -81,7 +81,7 @@ int vHeight = 800;
 
 // Terrain
 static QuadMesh terrain;
-const int meshSize = 128; // meshSize x meshSize (quads)
+const int meshSize = 256; // meshSize x meshSize (quads)
 const int meshWidth = 256;
 const int meshLength = 256;
 
@@ -180,14 +180,16 @@ void reshapeHandler(int w, int h) {
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	gluLookAt(
-		xSub + sin(submarineRotation * DEG2RAD) * zoom, subAltitude + 8, zSub + cos(submarineRotation * DEG2RAD) * zoom,
-		xSub, subAltitude, zSub,
+		subPosition.x + sin(submarineRotation * DEG2RAD) * zoom, subPosition.y + 8, subPosition.z + cos(submarineRotation * DEG2RAD) * zoom,
+		subPosition.x, subPosition.y, subPosition.z,
 		0.0, 1.0, 0.0);
 }
 
 void displayHandler(void) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+	testBlobCollision();
 
 	glMatrixMode(GL_MODELVIEW);
 
@@ -196,15 +198,15 @@ void displayHandler(void) {
 	DrawMeshQM(&terrain, meshSize);
 	
 	glPushMatrix();
-		glTranslatef(xSub, subAltitude, zSub);
+		glTranslatef(subPosition.x, subPosition.y, subPosition.z);
 		glRotatef(submarineRotation, 0, 1, 0);
 		drawLittleBalckSubmarine();
 	glPopMatrix();
 	
 	glLoadIdentity();
 	gluLookAt(
-		xSub + sin(submarineRotation * DEG2RAD)*zoom, subAltitude + 8, zSub + cos(submarineRotation * DEG2RAD)*zoom,
-		xSub, subAltitude, zSub,
+		subPosition.x + sin(submarineRotation * DEG2RAD)*zoom, subPosition.y + 8, subPosition.z + cos(submarineRotation * DEG2RAD)*zoom,
+		subPosition.x, subPosition.y, subPosition.z,
 		0.0, 1.0, 0.0);
 	glutSwapBuffers();
 }
@@ -294,15 +296,15 @@ void idle() {
 			backPropRotation += deltaTime * speed * 50;
 			leftPropRotation += deltaTime * speed * 50;
 			rightPropRotation += deltaTime * speed * 50;
-			xSub -= deltaTime * speed * sinf(submarineRotation * DEG2RAD);
-			zSub -= deltaTime * speed * cosf(submarineRotation * DEG2RAD);
+			subPosition.x -= deltaTime * speed * sinf(submarineRotation * DEG2RAD);
+			subPosition.z -= deltaTime * speed * cosf(submarineRotation * DEG2RAD);
 		}
 		if (isDownS) {
 			backPropRotation -= deltaTime * speed * 50;
 			leftPropRotation -= deltaTime * speed * 50;
 			rightPropRotation -= deltaTime * speed * 50;
-			xSub += deltaTime * speed * sinf(submarineRotation * DEG2RAD);
-			zSub += deltaTime * speed * cosf(submarineRotation * DEG2RAD);
+			subPosition.x += deltaTime * speed * sinf(submarineRotation * DEG2RAD);
+			subPosition.z += deltaTime * speed * cosf(submarineRotation * DEG2RAD);
 		}
 		glutPostRedisplay();
 	}
@@ -323,14 +325,14 @@ void idle() {
 	}
 	if (isDownSpace || isDownC) {
 		if (isDownSpace) {
-			subAltitude += deltaTime * speed * fabs(rise_decline_angle / max_rise_angle);
+			subPosition.y += deltaTime * speed * fabs(rise_decline_angle / max_rise_angle);
 			rise_decline_angle += deltaTime * 0.1;
 			if (rise_decline_angle > max_rise_angle) rise_decline_angle = max_rise_angle;
 		}
 		if (isDownC) {
-			subAltitude -= deltaTime * speed * fabs(rise_decline_angle / min_decline_angle);
+			subPosition.y -= deltaTime * speed * fabs(rise_decline_angle / min_decline_angle);
 			rise_decline_angle -= deltaTime * 0.1;
-			if (subAltitude < minAltitude) subAltitude = minAltitude;
+			if (subPosition.y < minAltitude) subPosition.y = minAltitude;
 			if (rise_decline_angle < min_decline_angle) rise_decline_angle = min_decline_angle;
 		}
 		backPropRotation += deltaTime * 0.2;
@@ -528,37 +530,46 @@ void loadAllTextures(void) {
 
 void pushPremadeBloblist() {
 	// Bloblist premade
+	Metaball b0;
 	Metaball b1;
 	Metaball b2;
 	Metaball b3;
 	Metaball b4;
 	Metaball b5;
-	Metaball b6;
+	b0.width = 0.05;
+	b0.height = 10;
+	b0.pos = glm::vec3(41, 0, -11);
 	b1.width = 0.05;
 	b1.height = 10;
-	b1.pos = NewVector3D(41, 0, -11);
-	b2.width = 0.05;
+	b1.pos = glm::vec3(7, 0, -54);
+	b2.width = 0.08;
 	b2.height = 10;
-	b2.pos = NewVector3D(7, 0, -54);
-	b3.width = 0.08;
-	b3.height = 10;
-	b3.pos = NewVector3D(19, 0, -28);
-	b4.width = 0.06;
-	b4.height = 7;
-	b4.pos = NewVector3D(35, 0, -26);
-	b5.width = 0.01;
-	b5.height = -5;
-	b5.pos = NewVector3D(3, 0, -20);
-	b6.width = 0.1;
-	b6.height = 20;
-	b6.pos = NewVector3D(14, 0, -53);
-	ballList.push_back(b1); ballList.push_back(b2);
-	ballList.push_back(b3); ballList.push_back(b4);
-	ballList.push_back(b5); ballList.push_back(b6);
+	b2.pos = glm::vec3(19, 0, -28);
+	b3.width = 0.06;
+	b3.height = 7;
+	b3.pos = glm::vec3(35, 0, -26);
+	b4.width = 0.01;
+	b4.height = -5;
+	b4.pos = glm::vec3(3, 0, -20);
+	b5.width = 0.1;
+	b5.height = 20;
+	b5.pos = glm::vec3(14, 0, -53);
+	ballList.push_back(b0); ballList.push_back(b1);
+	ballList.push_back(b2); ballList.push_back(b3);
+	ballList.push_back(b4); ballList.push_back(b5);
 	UpdateMesh(&terrain, ballList);
 }
 
-bool testCollision() {
-	
+bool testBlobCollision(void) {
+	float distance;
+	float subHitSphere = 3.0;
+	for (int i = 0; i < ballList.size(); i++) {
+		distance = glm::distance(glm::vec3(subPosition.x, 0, subPosition.z), ballList[i].pos);
+		// Collision detection
+		if (subPosition.y < ballList[i].height * exp(-(ballList[i].width * (distance * distance))) && ballList[i].height > 0) {
+			printf("Colliding with first blob[%d], width: %f\n", i, ballList[i].width);
+			return true;
+		}
+	}
 	return false;
 }

@@ -293,7 +293,9 @@ void UpdateMesh(QuadMesh* qm, std::vector<Metaball> blobList) {
 			//qm->vertices[i * (qm->maxMeshSize + 1) + j].position.y = 0;
 			//pos.y = 0;
 			for (int k = 0; k <= (int)blobList.size() -1; k++) {
+				// Distance from vertex and blob
 				double distance = sqrt(pow(blobList[k].pos.x - pos.x, 2) + pow(blobList[k].pos.y - pos.y, 2) + pow(blobList[k].pos.z - pos.z, 2));
+				// add to y(height) of current vertex by 
 				qm->vertices[i * (qm->maxMeshSize + 1) + j].position.y += blobList[k].height * exp(-(blobList[k].width * (distance*distance) ));
 			}
 		}

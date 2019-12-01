@@ -1,8 +1,9 @@
 #include <stdbool.h>
 #include "Vector3D.h"
+#include <glm.hpp>
 
 typedef struct Metaball {
-	Vector3D pos;
+	glm::vec3 pos;
 	double width;
 	double height;
 } Metaball;
