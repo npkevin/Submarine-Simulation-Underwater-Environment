@@ -142,7 +142,7 @@ bool InitMeshQM(QuadMesh* qm, int meshSize, Vector3D origin, double meshLength, 
 	}
 
 	// GENEREATE NOISE
-	generateNoise(qm);
+	generateNoise(qm, 1337);
 
 
     ComputeNormalsQM(qm);
@@ -303,14 +303,14 @@ void UpdateMesh(QuadMesh* qm, std::vector<Metaball> blobList) {
 	ComputeNormalsQM(qm);
 }
 
-void generateNoise(QuadMesh* qm) {
+void generateNoise(QuadMesh* qm, int seed) {
 	float noiseScale = 0.05f;
 
 	for (int i = 0; i < qm->maxMeshSize + 1; i++) {
 		for (int j = 0; j < qm->maxMeshSize + 1; j++) {
 			Vector3D pos = qm->vertices[ i*(qm->maxMeshSize+1)+j ].position;
 
-			PerlinNoise perl = PerlinNoise(1234);
+			PerlinNoise perl = PerlinNoise(seed);
 			float height = 3*perl.noise(i*noiseScale, j*noiseScale);
 
 			//printf("%f\n", height );

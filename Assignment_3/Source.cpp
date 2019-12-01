@@ -81,8 +81,8 @@ int vHeight = 800;
 
 // Terrain
 static QuadMesh terrain;
-const int meshSize = 256; // meshSize x meshSize (quads)
-const int meshWidth = 256;
+const int meshSize = 128; // meshSize x meshSize (quads)
+const int meshWidth = 256; 
 const int meshLength = 256;
 
 static GLfloat light_position[] = { 100.0F, 100.0F, 0.0F, 1.0F };
@@ -97,9 +97,9 @@ static GLfloat drone_mat_specular[] = { 0.01F, 0.01F, 0.01F, 1.0F };
 static GLfloat drone_mat_diffuse[] = { 0.05F, 0.05F, 0.05F, 1.0F };
 static GLfloat drone_mat_shininess[] = { 1.0F };
 // Blue
-GLfloat drone_blade_mat_ambient[] = { 0.1F, 0.2F, 0.3F, 1.0F };
-GLfloat drone_blade_mat_specular[] = { 0.01F, 0.2F, 0.3F, 1.0F };
-GLfloat drone_blade_mat_diffuse[] = { 0.05F, 0.1F, 0.3F, 1.0F };
+GLfloat drone_blade_mat_ambient[] = { 0.2F, 0.4F, 0.6F, 1.0F };
+GLfloat drone_blade_mat_specular[] = { 0.02F, 0.4F, 0.6F, 1.0F };
+GLfloat drone_blade_mat_diffuse[] = { 0.1F, 0.2F, 0.6F, 1.0F };
 GLfloat drone_blade_mat_shininess[] = { 1.0F };
 
 GLfloat noMaterial[] = { 1.0F, 1.0F, 1.0F, 1.0F };
@@ -536,22 +536,22 @@ void pushPremadeBloblist() {
 	Metaball b3;
 	Metaball b4;
 	Metaball b5;
-	b0.width = 0.05;
-	b0.height = 10;
-	b0.pos = glm::vec3(41, 0, -11);
-	b1.width = 0.05;
-	b1.height = 10;
-	b1.pos = glm::vec3(7, 0, -54);
-	b2.width = 0.08;
-	b2.height = 10;
-	b2.pos = glm::vec3(19, 0, -28);
-	b3.width = 0.06;
-	b3.height = 7;
-	b3.pos = glm::vec3(35, 0, -26);
-	b4.width = 0.01;
-	b4.height = -5;
-	b4.pos = glm::vec3(3, 0, -20);
-	b5.width = 0.1;
+	b0.width = 0.02;
+	b0.height = 30;
+	b0.pos = glm::vec3(128, 0, -128);
+	b1.width = 0.02;
+	b1.height = 15;
+	b1.pos = glm::vec3(20, 0, -154);
+	b2.width = 0.02;
+	b2.height = 15;
+	b2.pos = glm::vec3(190, 0, -111);
+	b3.width = 0.02;
+	b3.height = 40;
+	b3.pos = glm::vec3(200, 0, -26);
+	b4.width = 0.02;
+	b4.height = -30;
+	b4.pos = glm::vec3(55, 0, -200);
+	b5.width = 0.02;
 	b5.height = 20;
 	b5.pos = glm::vec3(14, 0, -53);
 	ballList.push_back(b0); ballList.push_back(b1);

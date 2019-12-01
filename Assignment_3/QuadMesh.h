@@ -55,5 +55,5 @@ bool InitMeshQM(QuadMesh* qm, int meshSize, Vector3D origin, double meshLength, 
 void DrawMeshQM(QuadMesh* qm, int meshSize);
 void FreeMemoryQM(QuadMesh* qm);
 void UpdateMesh(QuadMesh* qm, std::vector<Metaball> bloblist);
-void generateNoise(QuadMesh* qm);
+void generateNoise(QuadMesh* qm, int seed);
 void ComputeNormalsQM(QuadMesh* qm);
