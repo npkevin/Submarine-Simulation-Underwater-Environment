@@ -14,6 +14,18 @@
 
 #define DEG2RAD 3.14159f/180.0f
 
+typedef struct Player
+{
+	glm::vec3 position;
+	float backPropRotation = 0.0f;
+	float leftPropRotation = 0.0f;
+	float rightPropRotation = 0.0f;
+	float submarineRotation = 0.0;
+	float rise_decline_angle = 0.0f;
+	float speed = 0.01f;
+	glm::vec3 subPosition = glm::vec3(0.0f, 1.0f, 0.0f);
+} Player;
+
 void initOpenGL(int, int);
 void displayHandler(void);
 void reshapeHandler(int, int);
@@ -28,8 +40,8 @@ void pushPremadeBloblist(void);
 bool testBlobCollision(void);
 void selfDestruct(void);
 
-void drawLittleBalckSubmarine();
-void drawPropellor(int pos);
+void drawSub(Player p);
+void drawPropellor(int pos, Player p);
 
 //Textures
 GLuint sandTexture_id;
@@ -48,21 +60,11 @@ bool isDownD = false;
 bool isDownSpace = false;
 bool isDownC = false;
 
-// Movement stuff
+// Player
+Player player;
 
-float minAltitude = -5.0;
-float backPropRotation = 0.0f;
-float leftPropRotation = 0.0f;
-float rightPropRotation = 0.0f;
-float rise_decline_angle = 0.0f;
-float max_rise_angle = 20.0f;
-float min_decline_angle = -20.0f;
-float submarineRotation = 0.0;
-float speed = 0.01f;
-float minSpeed = 0.002;
-float maxSpeed = 0.05;
-glm::vec3 subPosition = glm::vec3(0.0f, 1.0f, 0.0f);
-float zoom = 15.0;
+
+
 
 // Other
 int mainWindowID;
@@ -80,6 +82,12 @@ float ballWidth = 0.1;
 // Settings
 int vWidth = 1000;
 int vHeight = 800;
+float minAltitude = -5.0;
+float max_rise_angle = 20.0f;
+float min_decline_angle = -20.0f;
+float zoom = 15.0;
+float minSpeed = 0.002;
+float maxSpeed = 0.05;
 
 // Terrain
 static QuadMesh terrain;
@@ -107,13 +115,7 @@ GLfloat drone_blade_mat_shininess[] = { 1.0F };
 GLfloat noMaterial[] = { 1.0F, 1.0F, 1.0F, 1.0F };
 
 
-typedef struct EnemySubmarine
-{
-	glm::vec3 position;
-} EnemySubmarine;
-
-
-std::vector<EnemySubmarine> subList;
+std::vector<Player> enemies;
 
 int main(int argc, char** argv) {
 	glutInit(&argc, argv);
@@ -177,12 +179,12 @@ void initOpenGL(int w, int h) {
 
 
 	// Premade enemy list
-	EnemySubmarine s0;
-	EnemySubmarine s1;
-	s0.position = glm::vec3(20, 0, -20);
-	s1.position = glm::vec3(25, 0, -25);
-	subList.push_back(s0);
-	subList.push_back(s1);
+	Player npc1;
+	Player npc2;
+	npc1.position = glm::vec3(20, 2, -20);
+	npc2.position = glm::vec3(25, 3, -25);
+	enemies.push_back(npc1);
+	enemies.push_back(npc2);
 
 	
 	Vector3D ambient = NewVector3D(0.0f, 0.05f, 0.0f);
@@ -201,8 +203,8 @@ void reshapeHandler(int w, int h) {
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	gluLookAt(
-		subPosition.x + sin(submarineRotation * DEG2RAD) * zoom, subPosition.y + 8, subPosition.z + cos(submarineRotation * DEG2RAD) * zoom,
-		subPosition.x, subPosition.y, subPosition.z,
+		player.subPosition.x + sin(player.submarineRotation * DEG2RAD) * zoom, player.subPosition.y + 8, player.subPosition.z + cos(player.submarineRotation * DEG2RAD) * zoom,
+		player.subPosition.x, player.subPosition.y, player.subPosition.z,
 		0.0, 1.0, 0.0);
 }
 
@@ -217,27 +219,27 @@ void displayHandler(void) {
 	// Draw ground mesh
 	glBindTexture(GL_TEXTURE_2D, sandTexture_id);
 	DrawMeshQM(&terrain, meshSize);
-	
+
+
 	glPushMatrix();
-		glTranslatef(subPosition.x, subPosition.y, subPosition.z);
-		glRotatef(submarineRotation, 0, 1, 0);
-		drawLittleBalckSubmarine();
+		glTranslatef(player.subPosition.x, player.subPosition.y, player.subPosition.z);
+		glRotatef(player.submarineRotation, 0, 1, 0);
+		drawSub(player);
 	glPopMatrix();
 
 
-	for (int i = 0; i < subList.size() ; i++) {
-
+	for (int i = 0; i < enemies.size() ; i++) {
 		glPushMatrix();
-		glTranslatef(subList[i].position.x, subList[i].position.y, subList[i].position.z);
-		glRotatef(0, 0, 1, 0);
-		drawLittleBalckSubmarine();
+			glTranslatef(enemies[i].position.x, enemies[i].position.y, enemies[i].position.z);
+			glRotatef(0, 0, 1, 0);
+			drawSub(enemies[i]);
 		glPopMatrix();
 	}
 	
 	glLoadIdentity();
 	gluLookAt(
-		subPosition.x + sin(submarineRotation * DEG2RAD)*zoom, subPosition.y + 8, subPosition.z + cos(submarineRotation * DEG2RAD)*zoom,
-		subPosition.x, subPosition.y, subPosition.z,
+		player.subPosition.x + sin(player.submarineRotation * DEG2RAD) * zoom, player.subPosition.y + 8, player.subPosition.z + cos(player.submarineRotation * DEG2RAD) * zoom,
+		player.subPosition.x, player.subPosition.y, player.subPosition.z,
 		0.0, 1.0, 0.0);
 	glutSwapBuffers();
 }
@@ -257,14 +259,14 @@ void keyboardInputHandler(unsigned char key, int x, int y) {
 		glutDestroyWindow(mainWindowID);
 		break;
 	case '-':
-		speed -= 0.002;
-		if (speed < minSpeed) speed = minSpeed;
-		printf("speed: %f\n", speed);
+		player.speed -= 0.002;
+		if (player.speed < minSpeed) player.speed = minSpeed;
+		printf("speed: %f\n", player.speed);
 		break;
 	case '=':
-		speed += 0.002;
-		if (speed > maxSpeed) speed = maxSpeed;
-		printf("speed: %f\n", speed);
+		player.speed += 0.002;
+		if (player.speed > maxSpeed) player.speed = maxSpeed;
+		printf("speed: %f\n", player.speed);
 		break;
 	case 'w':
 		if (!isDownW) isDownW = true;
@@ -324,81 +326,81 @@ void idle() {
 
 	if (isDownW || isDownS) {
 		if (isDownW) {
-			backPropRotation += deltaTime * speed * 50;
-			leftPropRotation += deltaTime * speed * 50;
-			rightPropRotation += deltaTime * speed * 50;
-			subPosition.x -= deltaTime * speed * sinf(submarineRotation * DEG2RAD);
-			subPosition.z -= deltaTime * speed * cosf(submarineRotation * DEG2RAD);
+			player.backPropRotation += deltaTime * player.speed * 50;
+			player.leftPropRotation += deltaTime * player.speed * 50;
+			player.rightPropRotation += deltaTime * player.speed * 50;
+			player.subPosition.x -= deltaTime * player.speed * sinf(player.submarineRotation * DEG2RAD);
+			player.subPosition.z -= deltaTime * player.speed * cosf(player.submarineRotation * DEG2RAD);
 		}
 		if (isDownS) {
-			backPropRotation -= deltaTime * speed * 50;
-			leftPropRotation -= deltaTime * speed * 50;
-			rightPropRotation -= deltaTime * speed * 50;
-			subPosition.x += deltaTime * speed * sinf(submarineRotation * DEG2RAD);
-			subPosition.z += deltaTime * speed * cosf(submarineRotation * DEG2RAD);
+			player.backPropRotation -= deltaTime * player.speed * 50;
+			player.leftPropRotation -= deltaTime * player.speed * 50;
+			player.rightPropRotation -= deltaTime * player.speed * 50;
+			player.subPosition.x += deltaTime * player.speed * sinf(player.submarineRotation * DEG2RAD);
+			player.subPosition.z += deltaTime * player.speed * cosf(player.submarineRotation * DEG2RAD);
 		}
 		glutPostRedisplay();
 	}
 	if (isDownA || isDownD) {
 		if (isDownA) {
-			if (submarineRotation > 360) submarineRotation = 0;
-			submarineRotation += deltaTime * speed * 20;
-			leftPropRotation -= deltaTime * speed * 50;
-			rightPropRotation += deltaTime * speed * 50;
+			if (player.submarineRotation > 360) player.submarineRotation = 0;
+			player.submarineRotation += deltaTime * player.speed * 20;
+			player.leftPropRotation -= deltaTime * player.speed * 50;
+			player.rightPropRotation += deltaTime * player.speed * 50;
 		}
 		if (isDownD) {
-			if (submarineRotation < 0) submarineRotation = 360;
-			submarineRotation -= deltaTime * speed * 20;
-			leftPropRotation += deltaTime * speed * 50;
-			rightPropRotation -= deltaTime * speed * 50;
+			if (player.submarineRotation < 0) player.submarineRotation = 360;
+			player.submarineRotation -= deltaTime * player.speed * 20;
+			player.leftPropRotation += deltaTime * player.speed * 50;
+			player.rightPropRotation -= deltaTime * player.speed * 50;
 		}
 		glutPostRedisplay();
 	}
 	if (isDownSpace || isDownC) {
 		if (isDownSpace) {
-			subPosition.y += deltaTime * speed * fabs(rise_decline_angle / max_rise_angle);
-			rise_decline_angle += deltaTime * 0.1;
-			if (rise_decline_angle > max_rise_angle) rise_decline_angle = max_rise_angle;
+			player.subPosition.y += deltaTime * player.speed * fabs(player.rise_decline_angle / max_rise_angle);
+			player.rise_decline_angle += deltaTime * 0.1;
+			if (player.rise_decline_angle > max_rise_angle) player.rise_decline_angle = max_rise_angle;
 		}
 		if (isDownC) {
-			subPosition.y -= deltaTime * speed * fabs(rise_decline_angle / min_decline_angle);
-			rise_decline_angle -= deltaTime * 0.1;
-			if (subPosition.y < minAltitude) subPosition.y = minAltitude;
-			if (rise_decline_angle < min_decline_angle) rise_decline_angle = min_decline_angle;
+			player.subPosition.y -= deltaTime * player.speed * fabs(player.rise_decline_angle / min_decline_angle);
+			player.rise_decline_angle -= deltaTime * 0.1;
+			if (player.subPosition.y < minAltitude) player.subPosition.y = minAltitude;
+			if (player.rise_decline_angle < min_decline_angle) player.rise_decline_angle = min_decline_angle;
 		}
-		backPropRotation += deltaTime * 0.2;
-		leftPropRotation += deltaTime * 0.2;
-		rightPropRotation += deltaTime * 0.4;
+		player.backPropRotation += deltaTime * 0.2;
+		player.leftPropRotation += deltaTime * 0.2;
+		player.rightPropRotation += deltaTime * 0.4;
 		glutPostRedisplay();
 	}
 	else {
-		if (rise_decline_angle != 0) {
-			if (rise_decline_angle > 0) {
-				rise_decline_angle -= deltaTime * 0.1;
-				if (rise_decline_angle < 0) rise_decline_angle = 0;
+		if (player.rise_decline_angle != 0) {
+			if (player.rise_decline_angle > 0) {
+				player.rise_decline_angle -= deltaTime * 0.1;
+				if (player.rise_decline_angle < 0) player.rise_decline_angle = 0;
 			}
-			if (rise_decline_angle < 0) {
-				rise_decline_angle += deltaTime * 0.1;
-				if (rise_decline_angle > 0) rise_decline_angle = 0;
+			if (player.rise_decline_angle < 0) {
+				player.rise_decline_angle += deltaTime * 0.1;
+				if (player.rise_decline_angle > 0) player.rise_decline_angle = 0;
 			}
 			glutPostRedisplay();
 
 		}
 	}
 
-	if (backPropRotation > 360) backPropRotation = 0;
-	if (backPropRotation < 0) backPropRotation = 360;
-	if (leftPropRotation > 360) leftPropRotation = 0;
-	if (leftPropRotation < 0) leftPropRotation = 360;
-	if (rightPropRotation > 360) rightPropRotation = 0;
-	if (rightPropRotation < 0) rightPropRotation = 360;
+	if (player.backPropRotation > 360) player.backPropRotation = 0;
+	if (player.backPropRotation < 0) player.backPropRotation = 360;
+	if (player.leftPropRotation > 360) player.leftPropRotation = 0;
+	if (player.leftPropRotation < 0) player.leftPropRotation = 360;
+	if (player.rightPropRotation > 360) player.rightPropRotation = 0;
+	if (player.rightPropRotation < 0) player.rightPropRotation = 360;
 	
 }
 
-void drawLittleBalckSubmarine() {
+void drawSub(Player p) {
 	glPushMatrix();
 		// Body
-		glRotatef(rise_decline_angle, 1, 0, 0);
+		glRotatef(p.rise_decline_angle, 1, 0, 0);
 		glTranslatef(0, 1, 0);
 		glScalef(1.0F, 1.0F, 2.0F);
 		// Select metal as Texture
@@ -408,7 +410,7 @@ void drawLittleBalckSubmarine() {
 		gluSphere(body, 1.0F, 16, 16);
 
 		glTranslatef(0, 0, -0.1);
-		drawPropellor(0);
+		drawPropellor(0, p);
 
 		// Window
 		glPushMatrix();
@@ -425,18 +427,18 @@ void drawLittleBalckSubmarine() {
 			// Left propellor
 			glPushMatrix();
 				glTranslatef(-1.6, 0, 0);
-				drawPropellor(1);
+				drawPropellor(1, p);
 			glPopMatrix();
 			// Right propellor
 			glPushMatrix();
 				glTranslatef(1.6, 0, 0);
-				drawPropellor(2);
+				drawPropellor(2, p);
 			glPopMatrix();
 		glPopMatrix();
 	glPopMatrix();
 }
 
-void drawPropellor(int pos) {
+void drawPropellor(int pos, Player p) {
 	// Propellor
 	glPushMatrix();
 		// Cone thing and back
@@ -464,13 +466,13 @@ void drawPropellor(int pos) {
 			float propellorRotation = 0.0;
 
 			if (pos == 0) {
-				propellorRotation = backPropRotation;
+				propellorRotation = p.backPropRotation;
 			}
 			else if (pos == 1) {
-				propellorRotation = leftPropRotation;
+				propellorRotation = p.leftPropRotation;
 			}
 			else if (pos == 2) {
-				propellorRotation = rightPropRotation;
+				propellorRotation = p.rightPropRotation;
 			}
 
 			glRotatef(propellorRotation, 0, 0, -1);
@@ -596,12 +598,12 @@ bool testBlobCollision(void) {
 	float noiseScale = 0.05f;
 
 	for (int i = 0; i < ballList.size(); i++) {
-		distance = glm::distance(glm::vec3(subPosition.x, 0, subPosition.z), ballList[i].pos);
+		distance = glm::distance(glm::vec3(player.subPosition.x, 0, player.subPosition.z), ballList[i].pos);
 		PerlinNoise perl = PerlinNoise(1337);
-		float height = 3 * perl.noise(subPosition.x * noiseScale, subPosition.z * noiseScale);
+		float height = 3 * perl.noise(player.subPosition.x * noiseScale, player.subPosition.z * noiseScale);
 		// Collision detection
 
-		if (subPosition.y < ballList[i].height * exp(-(ballList[i].width * (distance * distance))) + height && ballList[i].height > 0) {
+		if (player.subPosition.y < ballList[i].height * exp(-(ballList[i].width * (distance * distance))) + height && ballList[i].height > 0) {
 			selfDestruct();
 			return true;
 		}
