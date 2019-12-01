@@ -507,7 +507,7 @@ void loadAllTextures(void) {
 	// Select created texture
 	glBindTexture(GL_TEXTURE_2D, sandTexture_id);
 	// scan image to memory
-	sand = readTexel("/Users/Kevin/Desktop/sand.bmp");
+	sand = readTexel("./textures/sand.bmp");
 	// Texture Parameters (for sandTexture_id)
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	// Prepare texture (for sandTexture_id)
@@ -516,14 +516,14 @@ void loadAllTextures(void) {
 	//metal
 	glGenTextures(1, &metalTexture_id);
 	glBindTexture(GL_TEXTURE_2D, metalTexture_id);
-	metal = readTexel("/Users/Kevin/Desktop/metal.bmp");
+	metal = readTexel("./textures/metal.bmp");
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 280, 280, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, metal);
 
 	//window
 	glGenTextures(1, &glassTexture_id);
 	glBindTexture(GL_TEXTURE_2D, glassTexture_id);
-	glass = readTexel("/Users/Kevin/Desktop/glass.bmp");
+	glass = readTexel("./textures/glass.bmp");
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 432, 432, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, glass);
 }

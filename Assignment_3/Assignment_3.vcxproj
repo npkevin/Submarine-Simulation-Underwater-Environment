@@ -71,8 +71,8 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>C:\Users\Kevin\source\repos\Assignment_3\Assignment_3\gl\glm\include;C:\Users\Kevin\source\repos\Assignment_3\Assignment_3\gl\freeglut 3.0.0\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\Kevin\source\repos\Assignment_3\Assignment_3\gl\freeglut 3.0.0\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(ProjectDir)\gl\freeglut 3.0.0\include;$(ProjectDir)\gl\glm\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)\gl\freeglut 3.0.0\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
