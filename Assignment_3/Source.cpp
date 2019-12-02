@@ -468,7 +468,7 @@ void idle() {
 
 			// Player in range of this sub
 			if (glm::distance(player.position, enemies[i].position) < enemies[i].sight) {
-				glm::vec3 towardsPlayer = glm::vec3(player.position.x - enemies[i].position.x, 0, player.position.z - enemies[i].position.z);
+				glm::vec3 towardsPlayer = glm::vec3(player.position.x - enemies[i].position.x, player.position.y - enemies[i].position.y, player.position.z - enemies[i].position.z);
 				towardsPlayer = glm::normalize(towardsPlayer);
 
 				// Face player (visual)
