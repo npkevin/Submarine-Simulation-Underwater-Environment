@@ -129,6 +129,13 @@ static GLfloat light_specular[] = { 1.0, 1.0, 1.0, 1.0 };
 static GLfloat light_ambient[] = { 0.2F, 0.2F, 0.2F, 1.0F };
 
 
+
+static GLfloat explosion_mat_ambient[] = {1.0f, 0.0, 0.0, 1.0f};
+static GLfloat explosion_mat_specular[] = { 0.01F, 0.01F, 0.01F, 1.0F };
+static GLfloat explosion_mat_diffuse[] = { 0.05F, 0.05F, 0.05F, 1.0F };
+static GLfloat explosion_mat_shininess[] = { 1.0F };
+
+
 // DRONE MATERIALS
 static GLfloat drone_mat_ambient[] = { 0.1F, 0.1F, 0.1F, 1.0F };
 static GLfloat drone_mat_specular[] = { 0.01F, 0.01F, 0.01F, 1.0F };
@@ -531,9 +538,13 @@ void drawSub(Player p) {
 		else  {
 			explosion = p.breakApart * 0.1 + 3.0;
 		}
-		glPushMatrix();
+		
+		glMaterialfv(GL_FRONT, GL_AMBIENT, explosion_mat_ambient);
+		glMaterialfv(GL_FRONT, GL_SPECULAR, explosion_mat_specular);
+		glMaterialfv(GL_FRONT, GL_DIFFUSE, explosion_mat_diffuse);
+		glMaterialfv(GL_FRONT, GL_SHININESS, explosion_mat_shininess);
 		gluSphere(body, explosion, 16, 16);
-		glPopMatrix();
+		
 	}
 		glPushMatrix();
 			// Body
