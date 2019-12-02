@@ -16,14 +16,16 @@
 
 typedef struct Player
 {
-	glm::vec3 position;
+	//glm::vec3 position;
 	float backPropRotation = 0.0f;
 	float leftPropRotation = 0.0f;
 	float rightPropRotation = 0.0f;
 	float submarineRotation = 0.0;
 	float rise_decline_angle = 0.0f;
 	float speed = 0.01f;
-	glm::vec3 subPosition = glm::vec3(0.0f, 1.0f, 0.0f);
+	float breakApart = 0.0f;
+	bool isDead = false;
+	glm::vec3 position = glm::vec3(0.0f, 1.0f, 0.0f);
 } Player;
 
 void initOpenGL(int, int);
@@ -38,7 +40,7 @@ void loadAllTextures(void);
 unsigned char* readTexel(const char* path);
 void pushPremadeBloblist(void);
 bool testBlobCollision(void);
-void selfDestruct(void);
+void selfDestruct(Player *p);
 
 void drawSub(Player p);
 void drawPropellor(int pos, Player p);
@@ -59,6 +61,7 @@ bool isDownA = false;
 bool isDownD = false;
 bool isDownSpace = false;
 bool isDownC = false;
+
 
 // Player
 Player player;
@@ -203,8 +206,8 @@ void reshapeHandler(int w, int h) {
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	gluLookAt(
-		player.subPosition.x + sin(player.submarineRotation * DEG2RAD) * zoom, player.subPosition.y + 8, player.subPosition.z + cos(player.submarineRotation * DEG2RAD) * zoom,
-		player.subPosition.x, player.subPosition.y, player.subPosition.z,
+		player.position.x + sin(player.submarineRotation * DEG2RAD) * zoom, player.position.y + 8, player.position.z + cos(player.submarineRotation * DEG2RAD) * zoom,
+		player.position.x, player.position.y, player.position.z,
 		0.0, 1.0, 0.0);
 }
 
@@ -222,7 +225,7 @@ void displayHandler(void) {
 
 
 	glPushMatrix();
-		glTranslatef(player.subPosition.x, player.subPosition.y, player.subPosition.z);
+		glTranslatef(player.position.x, player.position.y, player.position.z);
 		glRotatef(player.submarineRotation, 0, 1, 0);
 		drawSub(player);
 	glPopMatrix();
@@ -238,17 +241,19 @@ void displayHandler(void) {
 	
 	glLoadIdentity();
 	gluLookAt(
-		player.subPosition.x + sin(player.submarineRotation * DEG2RAD) * zoom, player.subPosition.y + 8, player.subPosition.z + cos(player.submarineRotation * DEG2RAD) * zoom,
-		player.subPosition.x, player.subPosition.y, player.subPosition.z,
+		player.position.x + sin(player.submarineRotation * DEG2RAD) * zoom, player.position.y + 8, player.position.z + cos(player.submarineRotation * DEG2RAD) * zoom,
+		player.position.x, player.position.y, player.position.z,
 		0.0, 1.0, 0.0);
 	glutSwapBuffers();
 }
 // state:0 == keyDown
 void mouseButtonHandler(int button, int state, int x, int y) {
+
 	
 }
 
 void mouseMotionHandler(int x, int y) {
+
 	
 }
 
@@ -286,6 +291,10 @@ void keyboardInputHandler(unsigned char key, int x, int y) {
 		break;
 	case 'c':
 		if (!isDownC) isDownC = true;
+		break;
+	case 'g':
+		if (!enemies[0].isDead) enemies[0].isDead = true;
+		else enemies[0].isDead = false;
 		break;
 	default:
 		break;
@@ -329,15 +338,15 @@ void idle() {
 			player.backPropRotation += deltaTime * player.speed * 50;
 			player.leftPropRotation += deltaTime * player.speed * 50;
 			player.rightPropRotation += deltaTime * player.speed * 50;
-			player.subPosition.x -= deltaTime * player.speed * sinf(player.submarineRotation * DEG2RAD);
-			player.subPosition.z -= deltaTime * player.speed * cosf(player.submarineRotation * DEG2RAD);
+			player.position.x -= deltaTime * player.speed * sinf(player.submarineRotation * DEG2RAD);
+			player.position.z -= deltaTime * player.speed * cosf(player.submarineRotation * DEG2RAD);
 		}
 		if (isDownS) {
 			player.backPropRotation -= deltaTime * player.speed * 50;
 			player.leftPropRotation -= deltaTime * player.speed * 50;
 			player.rightPropRotation -= deltaTime * player.speed * 50;
-			player.subPosition.x += deltaTime * player.speed * sinf(player.submarineRotation * DEG2RAD);
-			player.subPosition.z += deltaTime * player.speed * cosf(player.submarineRotation * DEG2RAD);
+			player.position.x += deltaTime * player.speed * sinf(player.submarineRotation * DEG2RAD);
+			player.position.z += deltaTime * player.speed * cosf(player.submarineRotation * DEG2RAD);
 		}
 		glutPostRedisplay();
 	}
@@ -358,14 +367,14 @@ void idle() {
 	}
 	if (isDownSpace || isDownC) {
 		if (isDownSpace) {
-			player.subPosition.y += deltaTime * player.speed * fabs(player.rise_decline_angle / max_rise_angle);
+			player.position.y += deltaTime * player.speed * fabs(player.rise_decline_angle / max_rise_angle);
 			player.rise_decline_angle += deltaTime * 0.1;
 			if (player.rise_decline_angle > max_rise_angle) player.rise_decline_angle = max_rise_angle;
 		}
 		if (isDownC) {
-			player.subPosition.y -= deltaTime * player.speed * fabs(player.rise_decline_angle / min_decline_angle);
+			player.position.y -= deltaTime * player.speed * fabs(player.rise_decline_angle / min_decline_angle);
 			player.rise_decline_angle -= deltaTime * 0.1;
-			if (player.subPosition.y < minAltitude) player.subPosition.y = minAltitude;
+			if (player.position.y < minAltitude) player.position.y = minAltitude;
 			if (player.rise_decline_angle < min_decline_angle) player.rise_decline_angle = min_decline_angle;
 		}
 		player.backPropRotation += deltaTime * 0.2;
@@ -394,44 +403,65 @@ void idle() {
 	if (player.leftPropRotation < 0) player.leftPropRotation = 360;
 	if (player.rightPropRotation > 360) player.rightPropRotation = 0;
 	if (player.rightPropRotation < 0) player.rightPropRotation = 360;
+
+	if (player.isDead) {
+		selfDestruct(&player);
+	}
+
+	for (int i = 0; i < enemies.size(); i++) {
+		if (enemies[i].breakApart > 10) {
+			enemies.erase(enemies.begin() + i );
+		}
+
+		if (enemies[i].isDead) {
+			selfDestruct(&enemies[i]);
+		}
+
+	}
 	
 }
 
 void drawSub(Player p) {
 	glPushMatrix();
-		// Body
-		glRotatef(p.rise_decline_angle, 1, 0, 0);
-		glTranslatef(0, 1, 0);
-		glScalef(1.0F, 1.0F, 2.0F);
-		// Select metal as Texture
-		glBindTexture(GL_TEXTURE_2D, metalTexture_id);
-		GLUquadricObj* body = gluNewQuadric();
-		gluQuadricTexture(body, GL_TRUE);
-		gluSphere(body, 1.0F, 16, 16);
-
-		glTranslatef(0, 0, -0.1);
-		drawPropellor(0, p);
-
-		// Window
 		glPushMatrix();
-			glTranslatef(0, 0.4, -0.1);
-			glScalef(1, 1, 0.75);
-			GLUquadricObj* window = gluNewQuadric();
-			gluSphere(window, 0.8, 16, 16);
+			// Body
+			glRotatef(p.rise_decline_angle, 1, 0, 0);
+			glTranslatef(0, 1 - p.breakApart, 0);
+			glScalef(1.0F, 1.0F, 2.0F);
+			// Select metal as Texture
+			glBindTexture(GL_TEXTURE_2D, metalTexture_id);
+			GLUquadricObj* body = gluNewQuadric();
+			gluQuadricTexture(body, GL_TRUE);
+			gluSphere(body, 1.0F, 16, 16);
+
+			glTranslatef(0, 0, -0.1);
+			drawPropellor(0, p);
+
+			// Window
+			glPushMatrix();
+				glTranslatef(0, 0.4, -0.1);
+				glScalef(1, 1, 0.75);
+				GLUquadricObj* window = gluNewQuadric();
+				gluSphere(window, 0.8, 16, 16);
+			glPopMatrix();
 		glPopMatrix();
 
 		// Left and right wings/propellors
+		glScalef(1.0F, 1.0F, 2.0F);
+		glTranslatef(0, 1, -0.1);
 		glPushMatrix();
 			glScalef(0.85, 0.85, 0.85);
 			glTranslatef(0, 0, -1);
 			// Left propellor
 			glPushMatrix();
-				glTranslatef(-1.6, 0, 0);
+				// Fall diagonal left
+				glTranslatef(-1.6 - p.breakApart, -p.breakApart, 0);
 				drawPropellor(1, p);
 			glPopMatrix();
 			// Right propellor
 			glPushMatrix();
-				glTranslatef(1.6, 0, 0);
+				// Fall diagonal right
+				glTranslatef(1.6 + p.breakApart, -p.breakApart, 0);
 				drawPropellor(2, p);
 			glPopMatrix();
 		glPopMatrix();
@@ -598,19 +628,21 @@ bool testBlobCollision(void) {
 	float noiseScale = 0.05f;
 
 	for (int i = 0; i < ballList.size(); i++) {
-		distance = glm::distance(glm::vec3(player.subPosition.x, 0, player.subPosition.z), ballList[i].pos);
+		distance = glm::distance(glm::vec3(player.position.x, 0, player.position.z), ballList[i].pos);
 		PerlinNoise perl = PerlinNoise(1337);
-		float height = 3 * perl.noise(player.subPosition.x * noiseScale, player.subPosition.z * noiseScale);
+		float height = 3 * perl.noise(player.position.x * noiseScale, player.position.z * noiseScale);
 		// Collision detection
 
-		if (player.subPosition.y < ballList[i].height * exp(-(ballList[i].width * (distance * distance))) + height && ballList[i].height > 0) {
-			selfDestruct();
+		if (player.position.y < ballList[i].height * exp(-(ballList[i].width * (distance * distance))) + height && ballList[i].height > 0) {
+			player.isDead = true;
 			return true;
 		}
 	}
 	return false;
 }
 
-void selfDestruct() {
-
+void selfDestruct(Player *p) {
+	p->breakApart += deltaTime * 0.005;
+	printf(" %f\n", p->breakApart);
+	glutPostRedisplay();
 }
