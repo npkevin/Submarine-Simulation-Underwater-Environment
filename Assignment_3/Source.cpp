@@ -26,6 +26,7 @@ typedef struct Player
 	float breakApart = 0.0f;
 	bool isDead = false;
 	glm::vec3 position = glm::vec3(0.0f, 2.0f, 0.0f);
+	bool isEnemy = true;
 } Player;
 
 typedef struct Torpedo
@@ -63,6 +64,8 @@ GLuint metalTexture_id;
 unsigned char* metal;
 GLuint glassTexture_id;
 unsigned char* glass;
+GLuint redmetalTexture_id;
+unsigned char* rmetal;
 
 
 // keyDown flags
@@ -130,7 +133,7 @@ GLfloat noMaterial[] = { 1.0F, 1.0F, 1.0F, 1.0F };
 
 int main(int argc, char** argv) {
 	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_ALPHA | GLUT_DEPTH);
 	glutInitWindowSize(vWidth, vHeight);
 	glutInitWindowPosition((glutGet(GLUT_SCREEN_WIDTH) - vWidth) / 2, (glutGet(GLUT_SCREEN_HEIGHT) - vHeight) / 2);
 	mainWindowID = glutCreateWindow("A3 - 500627132|Kevin Nguyen, 500646804|Kevin Doung");
@@ -164,6 +167,8 @@ void initOpenGL(int w, int h) {
 
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	glEnable(GL_DEPTH_TEST);   // Remove hidded surfaces
 	glShadeModel(GL_SMOOTH);   // Use smooth shading, makes boundaries between polygons harder to see 
@@ -188,6 +193,7 @@ void initOpenGL(int w, int h) {
 	// Load Premade blobs
 	pushPremadeBloblist();
 
+	player.isEnemy = false;
 
 	// Premade enemy list
 	Player npc1;
@@ -469,7 +475,12 @@ void drawSub(Player p) {
 			glTranslatef(0, 1 - p.breakApart, 0);
 			glScalef(1.0F, 1.0F, 2.0F);
 			// Select metal as Texture
-			glBindTexture(GL_TEXTURE_2D, metalTexture_id);
+			if (p.isEnemy) {
+				glBindTexture(GL_TEXTURE_2D, redmetalTexture_id);
+			}
+			else {
+				glBindTexture(GL_TEXTURE_2D, metalTexture_id);
+			}
 			GLUquadricObj* body = gluNewQuadric();
 			gluQuadricTexture(body, GL_TRUE);
 			gluSphere(body, 1.0F, 16, 16);
@@ -481,8 +492,10 @@ void drawSub(Player p) {
 			glPushMatrix();
 				glTranslatef(0, 0.4, -0.1);
 				glScalef(1, 1, 0.75);
+				glBindTexture(GL_TEXTURE_2D, glassTexture_id);
 				GLUquadricObj* window = gluNewQuadric();
-				gluSphere(window, 0.8, 16, 16);
+				gluQuadricTexture(window, GL_TRUE);
+				gluSphere(window, 0.8, 8, 8);
 			glPopMatrix();
 		glPopMatrix();
 
@@ -509,6 +522,12 @@ void drawSub(Player p) {
 }
 
 void drawPropellor(int pos, Player p) {
+	if (p.isEnemy) {
+		glBindTexture(GL_TEXTURE_2D, redmetalTexture_id);
+	}
+	else {
+		glBindTexture(GL_TEXTURE_2D, metalTexture_id);
+	}
 	// Propellor
 	glPushMatrix();
 		// Cone thing and back
@@ -523,7 +542,6 @@ void drawPropellor(int pos, Player p) {
 
 		glTranslatef(0, 0, 1);
 
-		glBindTexture(GL_TEXTURE_2D, metalTexture_id);
 		GLUquadricObj* propellorShield;
 		propellorShield = gluNewQuadric();
 		gluQuadricTexture(propellorShield, GL_TRUE);
@@ -598,10 +616,10 @@ void drawTorpedo(Torpedo t) {
 	glPushMatrix();
 		glTranslatef(t.position.x, t.position.y, t.position.z);
 		glRotatef(t.angle, 0, 1, 0);
-		//player.position.x -= deltaTime * player.speed * sinf(player.submarineRotation * DEG2RAD);
-		//player.position.z -= deltaTime * player.speed * cosf(player.submarineRotation * DEG2RAD);
-		GLUquadricObj* body = gluNewQuadric();;
-		gluCylinder(body, 0.5, 0.5, 1, 8, 1);
+		glBindTexture(GL_TEXTURE_2D, redmetalTexture_id);
+		GLUquadricObj* body = gluNewQuadric();
+		gluQuadricTexture(body, GL_TRUE);
+		gluCylinder(body, 0.2, 0.2, 2, 4, 1);
 	glPopMatrix();
 }
 
@@ -625,21 +643,28 @@ void loadAllTextures(void) {
 	// Texture Parameters (for sandTexture_id)
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	// Prepare texture (for sandTexture_id)
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2048, 2048, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, sand);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2048, 2048, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, sand);
 
 	//metal
 	glGenTextures(1, &metalTexture_id);
 	glBindTexture(GL_TEXTURE_2D, metalTexture_id);
 	metal = readTexel("./textures/metal.bmp");
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 280, 280, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, metal);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 280, 280, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, metal);
 
 	//window
 	glGenTextures(1, &glassTexture_id);
 	glBindTexture(GL_TEXTURE_2D, glassTexture_id);
 	glass = readTexel("./textures/glass.bmp");
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 432, 432, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, glass);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 432, 432, 0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, glass);
+
+	//window
+	glGenTextures(1, &redmetalTexture_id);
+	glBindTexture(GL_TEXTURE_2D, redmetalTexture_id);
+	rmetal = readTexel("./textures/redmetal.bmp");
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 300, 300, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, rmetal);
 }
 
 void pushPremadeBloblist() {
@@ -729,11 +754,11 @@ bool submarineCollision(void) {
 	}
 }
 
-
 void selfDestruct(Player *p) {
 	p->breakApart += deltaTime * 0.005;
 	glutPostRedisplay();
 }
+
 void newTorpedo(Player p) {
 	Torpedo newTorpedo;
 	newTorpedo.forward = glm::vec3(glm::vec3(sinf(p.submarineRotation * DEG2RAD), 0, cosf(p.submarineRotation * DEG2RAD)));
