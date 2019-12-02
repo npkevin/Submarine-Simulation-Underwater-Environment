@@ -514,6 +514,13 @@ void idle() {
 		}
 		if (enemies[i].breakApart > 10) {
 			enemies.erase(enemies.begin() + i);
+			float randomXPos = (rand() % (156 - 100 + 1)) + 100;
+			float randomZPos = (rand() % (156 - 100 + 1)) + 100;
+			float randomYPos = (rand() % (5 - 3 + 1)) + 5;
+			Player npc;
+			printf("%f %f %f \n", randomXPos, randomYPos, randomZPos);
+			npc.position = glm::vec3(randomXPos, randomYPos, -randomZPos);
+			enemies.push_back(npc);
 		}
 	}
 	
