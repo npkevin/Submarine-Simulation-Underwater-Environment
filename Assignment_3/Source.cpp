@@ -402,13 +402,13 @@ void idle() {
 	if (isDownA || isDownD && !player.isDead) {
 		if (isDownA && !player.isDead) {
 			if (player.submarineRotation > 360) player.submarineRotation = 0;
-			player.submarineRotation += deltaTime * player.speed * 20;
+			player.submarineRotation += deltaTime * player.speed * 10;
 			player.leftPropRotation -= deltaTime * player.speed * 50;
 			player.rightPropRotation += deltaTime * player.speed * 50;
 		}
 		if (isDownD && !player.isDead) {
 			if (player.submarineRotation < 0) player.submarineRotation = 360;
-			player.submarineRotation -= deltaTime * player.speed * 20;
+			player.submarineRotation -= deltaTime * player.speed * 10;
 			player.leftPropRotation += deltaTime * player.speed * 50;
 			player.rightPropRotation -= deltaTime * player.speed * 50;
 		}
