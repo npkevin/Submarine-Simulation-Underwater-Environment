@@ -48,7 +48,7 @@ unsigned char* readTexel(const char* path);
 void pushPremadeBloblist(void);
 bool testBlobCollision(void);
 void selfDestruct(Player *p);
-void newTorpedo(Player p, float a);
+void newTorpedo(Player p);
 void drawTorpedo(Torpedo t);
 bool torpedoCollision(void);
 bool submarineCollision(void);
@@ -286,7 +286,7 @@ void keyboardInputHandler(unsigned char key, int x, int y) {
 			glutDestroyWindow(mainWindowID);
 			break;
 		case 13:
-			newTorpedo(player, player.submarineRotation);
+			newTorpedo(player);
 			break;
 		case '-':
 			player.speed -= 0.002;
@@ -436,10 +436,12 @@ void idle() {
 	if (player.rightPropRotation > 360) player.rightPropRotation = 0;
 	if (player.rightPropRotation < 0) player.rightPropRotation = 360;
 
+
+	// Check if player is dead
 	if (player.isDead) {
 		selfDestruct(&player);
 	}
-
+	// Check if other subs are dead
 	for (int i = 0; i < enemies.size(); i++) {
 		if (enemies[i].isDead) {
 			selfDestruct(&enemies[i]);
@@ -447,11 +449,13 @@ void idle() {
 		if (enemies[i].breakApart > 10) {
 			enemies.erase(enemies.begin() + i);
 		}
-
 	}
+
+	// Updates torpedo positions
 	for (int i = 0; i < torpedos.size(); i++) {
-		torpedos[i].position.x -= sinf(torpedos[i].angle * DEG2RAD) * 0.7;
-		torpedos[i].position.z -= cosf(torpedos[i].angle * DEG2RAD) * 0.7;
+		//torpedos[i].position.x -= deltaTime * sinf(torpedos[i].angle * DEG2RAD) * 0.1;
+		//torpedos[i].position.z -= deltaTime * cosf(torpedos[i].angle * DEG2RAD) * 0.1;
+		torpedos[i].position += torpedos[i].forward * (float)deltaTime * 0.1f;
 		glutPostRedisplay();
 	}
 	
@@ -730,15 +734,12 @@ void selfDestruct(Player *p) {
 	p->breakApart += deltaTime * 0.005;
 	glutPostRedisplay();
 }
-void newTorpedo(Player p, float angle) {
-	//torpedos[i].position.x -= sinf(torpedos[i].angle * DEG2RAD) * 0.7;
-	//torpedos[i].position.z -= cosf(torpedos[i].angle * DEG2RAD) * 0.7;
+void newTorpedo(Player p) {
 	Torpedo newTorpedo;
-	glm::vec3 placeHolder = p.position;
-	placeHolder.x -= sinf(angle * DEG2RAD) * 4;
-	placeHolder.z -= cosf(angle * DEG2RAD) * 4;
-	newTorpedo.position = placeHolder;
-	newTorpedo.forward;
-	newTorpedo.angle = angle;
+	newTorpedo.forward = glm::vec3(glm::vec3(sinf(p.submarineRotation * DEG2RAD), 0, cosf(p.submarineRotation * DEG2RAD)));
+	newTorpedo.forward = glm::normalize(-newTorpedo.forward);
+	// Move torpedo spawn forward
+	newTorpedo.position = p.position + newTorpedo.forward * 3.0f;
+	newTorpedo.angle = p.submarineRotation;
 	torpedos.push_back(newTorpedo);
 }
