@@ -500,7 +500,7 @@ void idle() {
 			enemies.erase(enemies.begin() + i);
 		}
 	}
-
+	
 	// Updates torpedo positions
 	for (int i = 0; i < torpedos.size(); i++) {
 		//torpedos[i].position.x -= deltaTime * sinf(torpedos[i].angle * DEG2RAD) * 0.1;
@@ -513,6 +513,19 @@ void idle() {
 
 void drawSub(Player p) {
 	glPushMatrix();
+	GLUquadricObj* body = gluNewQuadric();
+	if (p.isDead) {
+		float explosion = 0;
+		if (p.breakApart <= 5.0) {
+			explosion = p.breakApart * 0.5 + 1.0;
+		}
+		else  {
+			explosion = p.breakApart * 0.1 + 3.0;
+		}
+		glPushMatrix();
+		gluSphere(body, explosion, 16, 16);
+		glPopMatrix();
+	}
 		glPushMatrix();
 			// Body
 			glRotatef(p.rise_decline_angle, 1, 0, 0);
@@ -525,7 +538,7 @@ void drawSub(Player p) {
 			else {
 				glBindTexture(GL_TEXTURE_2D, metalTexture_id);
 			}
-			GLUquadricObj* body = gluNewQuadric();
+			//GLUquadricObj* body = gluNewQuadric();
 			gluQuadricTexture(body, GL_TRUE);
 			gluSphere(body, 1.0F, 16, 16);
 
