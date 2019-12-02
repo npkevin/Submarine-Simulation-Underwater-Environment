@@ -13,20 +13,27 @@
 #include "QuadMesh.h"
 
 #define DEG2RAD 3.14159f/180.0f
+#define RAD2DEG 180.0f/3.14159f
 
 typedef struct Player
 {
-	//glm::vec3 position;
+	glm::vec3 position = glm::vec3(0.0f, 2.0f, 0.0f);
 	float backPropRotation = 0.0f;
 	float leftPropRotation = 0.0f;
 	float rightPropRotation = 0.0f;
-	float submarineRotation = 0.0;
+	float submarineRotation = (((double)rand() / (RAND_MAX)) + 1) * 360;
 	float rise_decline_angle = 0.0f;
 	float speed = 0.01f;
 	float breakApart = 0.0f;
 	bool isDead = false;
-	glm::vec3 position = glm::vec3(0.0f, 2.0f, 0.0f);
 	bool isEnemy = true;
+	float sight = 50.0f;
+
+	glm::vec3 getForward() {
+		glm::vec3 forward = glm::vec3(glm::vec3(sinf(submarineRotation * DEG2RAD), 0, cosf(submarineRotation * DEG2RAD)));
+		return glm::normalize(-forward);
+	}
+
 } Player;
 
 typedef struct Torpedo
@@ -102,9 +109,11 @@ int vHeight = 800;
 float minAltitude = -5.0;
 float max_rise_angle = 20.0f;
 float min_decline_angle = -20.0f;
-float zoom = 15.0;
+float zoom = 20.0;
 float minSpeed = 0.002;
 float maxSpeed = 0.05;
+int markedTime = 0;
+int timer = CLOCKS_PER_SEC * 5;
 
 // Terrain
 static QuadMesh terrain;
@@ -193,17 +202,19 @@ void initOpenGL(int w, int h) {
 	// Load Premade blobs
 	pushPremadeBloblist();
 
+	// Player settings
+	player.position = glm::vec3(128, 2, -50);
 	player.isEnemy = false;
+	player.speed = 0.02;
 
 	// Premade enemy list
-	Player npc1;
-	Player npc2, npc3, npc4, npc5, npc6;
-	npc1.position = glm::vec3(20, 2, -20);
-	npc2.position = glm::vec3(25, 3, -25);
-	npc3.position = glm::vec3(30, 2, -20);
-	npc4.position = glm::vec3(35, 3, -25);
-	npc5.position = glm::vec3(20, 2, -30);
-	npc6.position = glm::vec3(25, 20, -55);
+	Player npc1, npc2, npc3, npc4, npc5, npc6;
+	npc1.position = glm::vec3(120, 3, -120);
+	npc2.position = glm::vec3(125, 3, -105);
+	npc3.position = glm::vec3(130, 3, -120);
+	npc4.position = glm::vec3(135, 3, -125);
+	npc5.position = glm::vec3(120, 2, -130);
+	npc6.position = glm::vec3(125, 3, -155);
 	enemies.push_back(npc1); 
 	enemies.push_back(npc2); enemies.push_back(npc3); enemies.push_back(npc4); enemies.push_back(npc5); enemies.push_back(npc6);
 
@@ -255,7 +266,7 @@ void displayHandler(void) {
 	for (int i = 0; i < enemies.size() ; i++) {
 		glPushMatrix();
 			glTranslatef(enemies[i].position.x, enemies[i].position.y, enemies[i].position.z);
-			glRotatef(0, 0, 1, 0);
+			glRotatef(enemies[i].submarineRotation, 0, 1, 0);
 			drawSub(enemies[i]);
 		glPopMatrix();
 	}
@@ -268,7 +279,7 @@ void displayHandler(void) {
 
 	glLoadIdentity();
 	gluLookAt(
-		player.position.x + sin(player.submarineRotation * DEG2RAD) * zoom, player.position.y + 8, player.position.z + cos(player.submarineRotation * DEG2RAD) * zoom,
+		player.position.x + sin(player.submarineRotation * DEG2RAD) * zoom, player.position.y + 9, player.position.z + cos(player.submarineRotation * DEG2RAD) * zoom,
 		player.position.x, player.position.y, player.position.z,
 		0.0, 1.0, 0.0);
 	glutSwapBuffers();
@@ -376,15 +387,13 @@ void idle() {
 			player.backPropRotation += deltaTime * player.speed * 50;
 			player.leftPropRotation += deltaTime * player.speed * 50;
 			player.rightPropRotation += deltaTime * player.speed * 50;
-			player.position.x -= deltaTime * player.speed * sinf(player.submarineRotation * DEG2RAD);
-			player.position.z -= deltaTime * player.speed * cosf(player.submarineRotation * DEG2RAD);
+			player.position += (float)(deltaTime * player.speed) * player.getForward();
 		}
 		if (isDownS) {
 			player.backPropRotation -= deltaTime * player.speed * 50;
 			player.leftPropRotation -= deltaTime * player.speed * 50;
 			player.rightPropRotation -= deltaTime * player.speed * 50;
-			player.position.x += deltaTime * player.speed * sinf(player.submarineRotation * DEG2RAD);
-			player.position.z += deltaTime * player.speed * cosf(player.submarineRotation * DEG2RAD);
+			player.position -= (float)(deltaTime * player.speed) * player.getForward();
 		}
 		glutPostRedisplay();
 	}
@@ -435,12 +444,47 @@ void idle() {
 		}
 	}
 
+	// Limits
 	if (player.backPropRotation > 360) player.backPropRotation = 0;
 	if (player.backPropRotation < 0) player.backPropRotation = 360;
 	if (player.leftPropRotation > 360) player.leftPropRotation = 0;
 	if (player.leftPropRotation < 0) player.leftPropRotation = 360;
 	if (player.rightPropRotation > 360) player.rightPropRotation = 0;
 	if (player.rightPropRotation < 0) player.rightPropRotation = 360;
+
+	// enemySubmarine AI (very dumb), every 5 seconds change direction
+	if ((float)now - markedTime > timer) {
+		markedTime = now;
+		for (int i = 0; i < enemies.size(); i++) {
+			if (!enemies[i].isDead) enemies[i].submarineRotation = (((double)rand() / (RAND_MAX)) + 1) * 360;
+		}
+	}
+	else {
+		for (int i = 0; i < enemies.size(); i++) {
+
+			enemies[i].backPropRotation += deltaTime * enemies[i].speed * 50;
+			enemies[i].leftPropRotation += deltaTime * enemies[i].speed * 50;
+			enemies[i].rightPropRotation += deltaTime * enemies[i].speed * 50;
+
+			// Player in range of this sub
+			if (glm::distance(player.position, enemies[i].position) < enemies[i].sight) {
+				glm::vec3 towardsPlayer = glm::vec3(player.position.x - enemies[i].position.x, 0, player.position.z - enemies[i].position.z);
+				towardsPlayer = glm::normalize(towardsPlayer);
+
+				// Face player (visual)
+				float towardsPlayerDegree = atan2((float)towardsPlayer.z, -(float)towardsPlayer.x) * RAD2DEG + 180 - 90;
+				enemies[i].submarineRotation = towardsPlayerDegree;
+				// Move towards player
+				enemies[i].position += (float)(deltaTime * enemies[i].speed) * towardsPlayer;
+
+			}
+			else {
+				enemies[i].position += (float)(deltaTime * enemies[i].speed) * enemies[i].getForward();
+			}
+			
+			glutPostRedisplay();
+		}
+	}
 
 
 	// Check if player is dead
@@ -761,8 +805,7 @@ void selfDestruct(Player *p) {
 
 void newTorpedo(Player p) {
 	Torpedo newTorpedo;
-	newTorpedo.forward = glm::vec3(glm::vec3(sinf(p.submarineRotation * DEG2RAD), 0, cosf(p.submarineRotation * DEG2RAD)));
-	newTorpedo.forward = glm::normalize(-newTorpedo.forward);
+	newTorpedo.forward = p.getForward();
 	// Move torpedo spawn forward
 	newTorpedo.position = p.position + newTorpedo.forward * 3.0f;
 	newTorpedo.angle = p.submarineRotation;
