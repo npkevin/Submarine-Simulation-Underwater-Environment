@@ -384,14 +384,14 @@ void idle() {
 	prevTime = now;
 	//printf("deltaTime: %d\n", deltaTime);
 
-	if (isDownW || isDownS) {
-		if (isDownW) {
+	if (isDownW || isDownS && !player.isDead) {
+		if (isDownW && !player.isDead) {
 			player.backPropRotation += deltaTime * player.speed * 50;
 			player.leftPropRotation += deltaTime * player.speed * 50;
 			player.rightPropRotation += deltaTime * player.speed * 50;
 			player.position += (float)(deltaTime * player.speed) * player.getForward();
 		}
-		if (isDownS) {
+		if (isDownS && !player.isDead) {
 			player.backPropRotation -= deltaTime * player.speed * 50;
 			player.leftPropRotation -= deltaTime * player.speed * 50;
 			player.rightPropRotation -= deltaTime * player.speed * 50;
@@ -399,14 +399,14 @@ void idle() {
 		}
 		glutPostRedisplay();
 	}
-	if (isDownA || isDownD) {
-		if (isDownA) {
+	if (isDownA || isDownD && !player.isDead) {
+		if (isDownA && !player.isDead) {
 			if (player.submarineRotation > 360) player.submarineRotation = 0;
 			player.submarineRotation += deltaTime * player.speed * 20;
 			player.leftPropRotation -= deltaTime * player.speed * 50;
 			player.rightPropRotation += deltaTime * player.speed * 50;
 		}
-		if (isDownD) {
+		if (isDownD && !player.isDead) {
 			if (player.submarineRotation < 0) player.submarineRotation = 360;
 			player.submarineRotation -= deltaTime * player.speed * 20;
 			player.leftPropRotation += deltaTime * player.speed * 50;
@@ -414,13 +414,13 @@ void idle() {
 		}
 		glutPostRedisplay();
 	}
-	if (isDownSpace || isDownC) {
+	if (isDownSpace || isDownC && !player.isDead) {
 		if (isDownSpace) {
 			player.position.y += deltaTime * player.speed * fabs(player.rise_decline_angle / max_rise_angle);
 			player.rise_decline_angle += deltaTime * 0.1;
 			if (player.rise_decline_angle > max_rise_angle) player.rise_decline_angle = max_rise_angle;
 		}
-		if (isDownC) {
+		if (isDownC && !player.isDead) {
 			player.position.y -= deltaTime * player.speed * fabs(player.rise_decline_angle / min_decline_angle);
 			player.rise_decline_angle -= deltaTime * 0.1;
 			if (player.position.y < minAltitude) player.position.y = minAltitude;
@@ -469,7 +469,7 @@ void idle() {
 			enemies[i].rightPropRotation += deltaTime * enemies[i].speed * 50;
 
 			// Player in range of this sub
-			if (glm::distance(player.position, enemies[i].position) < enemies[i].sight) {
+			if (glm::distance(player.position, enemies[i].position) < enemies[i].sight && !enemies[i].isDead) {
 				glm::vec3 towardsPlayer = glm::vec3(player.position.x - enemies[i].position.x, player.position.y - enemies[i].position.y, player.position.z - enemies[i].position.z);
 				towardsPlayer = glm::normalize(towardsPlayer);
 
@@ -488,7 +488,7 @@ void idle() {
 				}
 			}
 			else {
-				enemies[i].position += (float)(deltaTime * enemies[i].speed) * enemies[i].getForward();
+				if (!enemies[i].isDead) enemies[i].position += (float)(deltaTime * enemies[i].speed) * enemies[i].getForward();
 			}
 			
 			glutPostRedisplay();
