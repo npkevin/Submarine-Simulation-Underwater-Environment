@@ -28,6 +28,12 @@ typedef struct Player
 	glm::vec3 position = glm::vec3(0.0f, 1.0f, 0.0f);
 } Player;
 
+typedef struct Torpedo
+{
+	glm::vec3 position;
+	glm::vec3 forward;
+} Torpedo;
+
 void initOpenGL(int, int);
 void displayHandler(void);
 void reshapeHandler(int, int);
@@ -41,6 +47,8 @@ unsigned char* readTexel(const char* path);
 void pushPremadeBloblist(void);
 bool testBlobCollision(void);
 void selfDestruct(Player *p);
+void newTorpedo(Player p);
+void drawTorpedo(Torpedo t);
 
 void drawSub(Player p);
 void drawPropellor(int pos, Player p);
@@ -65,8 +73,8 @@ bool isDownC = false;
 
 // Player
 Player player;
-
-
+std::vector<Player> enemies;
+std::vector<Torpedo> torpedos;
 
 
 // Other
@@ -116,9 +124,6 @@ GLfloat drone_blade_mat_diffuse[] = { 0.1F, 0.2F, 0.6F, 1.0F };
 GLfloat drone_blade_mat_shininess[] = { 1.0F };
 
 GLfloat noMaterial[] = { 1.0F, 1.0F, 1.0F, 1.0F };
-
-
-std::vector<Player> enemies;
 
 int main(int argc, char** argv) {
 	glutInit(&argc, argv);
@@ -230,7 +235,7 @@ void displayHandler(void) {
 		drawSub(player);
 	glPopMatrix();
 
-
+	// Draw enemies
 	for (int i = 0; i < enemies.size() ; i++) {
 		glPushMatrix();
 			glTranslatef(enemies[i].position.x, enemies[i].position.y, enemies[i].position.z);
@@ -238,7 +243,13 @@ void displayHandler(void) {
 			drawSub(enemies[i]);
 		glPopMatrix();
 	}
-	
+
+	// Draw torpedos
+	for (int i = 0; i < torpedos.size(); i++) {
+		drawTorpedo(torpedos[i]);
+	}
+
+
 	glLoadIdentity();
 	gluLookAt(
 		player.position.x + sin(player.submarineRotation * DEG2RAD) * zoom, player.position.y + 8, player.position.z + cos(player.submarineRotation * DEG2RAD) * zoom,
@@ -262,6 +273,9 @@ void keyboardInputHandler(unsigned char key, int x, int y) {
 		//esc
 	case 27:
 		glutDestroyWindow(mainWindowID);
+		break;
+	case 13:
+		newTorpedo(player);
 		break;
 	case '-':
 		player.speed -= 0.002;
@@ -554,6 +568,14 @@ void drawPropellor(int pos, Player p) {
 	// Propellor END
 }
 
+void drawTorpedo(Torpedo t) {
+	glPushMatrix();
+		glTranslatef(t.position.x, t.position.y, t.position.z);
+		GLUquadricObj* body = gluNewQuadric();;
+		gluCylinder(body, 0.5, 0.5, 1, 8, 1);
+	glPopMatrix();
+}
+
 unsigned char* readTexel(const char * path) {
 	unsigned char* texel = (unsigned char*)malloc(2048 * 2048 * 3);;
 	// Read image to texel
@@ -645,4 +667,10 @@ void selfDestruct(Player *p) {
 	p->breakApart += deltaTime * 0.005;
 	printf(" %f\n", p->breakApart);
 	glutPostRedisplay();
+}
+void newTorpedo(Player p) {
+	Torpedo newTorpedo;
+	newTorpedo.position = p.position;
+	newTorpedo.forward;
+	torpedos.push_back(newTorpedo);
 }
