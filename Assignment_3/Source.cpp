@@ -28,7 +28,8 @@ typedef struct Player
 	bool isDead = false;
 	bool isEnemy = true;
 	float sight = 50.0f;
-
+	int fireCooldown = 0;
+	 
 	glm::vec3 getForward() {
 		glm::vec3 forward = glm::vec3(glm::vec3(sinf(submarineRotation * DEG2RAD), 0, cosf(submarineRotation * DEG2RAD)));
 		return glm::normalize(-forward);
@@ -112,8 +113,9 @@ float min_decline_angle = -20.0f;
 float zoom = 20.0;
 float minSpeed = 0.002;
 float maxSpeed = 0.05;
-int markedTime = 0;
+int npcAiUpdateTime = 0;
 int timer = CLOCKS_PER_SEC * 5;
+int fireSpeed = CLOCKS_PER_SEC * 0.6;
 
 // Terrain
 static QuadMesh terrain;
@@ -453,8 +455,8 @@ void idle() {
 	if (player.rightPropRotation < 0) player.rightPropRotation = 360;
 
 	// enemySubmarine AI (very dumb), every 5 seconds change direction
-	if ((float)now - markedTime > timer) {
-		markedTime = now;
+	if ((float)now - npcAiUpdateTime > timer) {
+		npcAiUpdateTime = now;
 		for (int i = 0; i < enemies.size(); i++) {
 			if (!enemies[i].isDead) enemies[i].submarineRotation = (((double)rand() / (RAND_MAX)) + 1) * 360;
 		}
@@ -477,6 +479,13 @@ void idle() {
 				// Move towards player
 				enemies[i].position += (float)(deltaTime * enemies[i].speed) * towardsPlayer;
 
+				// Firing range
+				if (glm::distance(player.position, enemies[i].position) < enemies[i].sight/2) {
+					if (now - enemies[i].fireCooldown > fireSpeed) {
+						enemies[i].fireCooldown = now;
+						newTorpedo(enemies[i]);
+					}
+				}
 			}
 			else {
 				enemies[i].position += (float)(deltaTime * enemies[i].speed) * enemies[i].getForward();
