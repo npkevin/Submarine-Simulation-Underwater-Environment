@@ -480,7 +480,7 @@ void idle() {
 				enemies[i].position += (float)(deltaTime * enemies[i].speed) * towardsPlayer;
 
 				// Firing range
-				if (glm::distance(player.position, enemies[i].position) < enemies[i].sight/2) {
+				if (glm::distance(player.position, enemies[i].position) < enemies[i].sight/2 && !enemies[i].isDead) {
 					if (now - enemies[i].fireCooldown > fireSpeed) {
 						enemies[i].fireCooldown = now;
 						newTorpedo(enemies[i]);
