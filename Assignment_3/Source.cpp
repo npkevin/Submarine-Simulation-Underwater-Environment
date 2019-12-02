@@ -16,15 +16,20 @@
 
 typedef struct Player
 {
-	glm::vec3 position;
 	float backPropRotation = 0.0f;
 	float leftPropRotation = 0.0f;
 	float rightPropRotation = 0.0f;
 	float submarineRotation = 0.0;
 	float rise_decline_angle = 0.0f;
 	float speed = 0.01f;
-	glm::vec3 subPosition = glm::vec3(0.0f, 1.0f, 0.0f);
+	glm::vec3 position = glm::vec3(0.0f, 1.0f, 0.0f);
 } Player;
+
+typedef struct Torpedo
+{
+	glm::vec3 position;
+	glm::vec3 forward;
+} Torpedo;
 
 void initOpenGL(int, int);
 void displayHandler(void);
@@ -39,6 +44,8 @@ unsigned char* readTexel(const char* path);
 void pushPremadeBloblist(void);
 bool testBlobCollision(void);
 void selfDestruct(void);
+void newTorpedo(Player p);
+void drawTorpedo(Torpedo t);
 
 void drawSub(Player p);
 void drawPropellor(int pos, Player p);
@@ -62,8 +69,8 @@ bool isDownC = false;
 
 // Player
 Player player;
-
-
+std::vector<Player> enemies;
+std::vector<Torpedo> torpedos;
 
 
 // Other
@@ -113,9 +120,6 @@ GLfloat drone_blade_mat_diffuse[] = { 0.1F, 0.2F, 0.6F, 1.0F };
 GLfloat drone_blade_mat_shininess[] = { 1.0F };
 
 GLfloat noMaterial[] = { 1.0F, 1.0F, 1.0F, 1.0F };
-
-
-std::vector<Player> enemies;
 
 int main(int argc, char** argv) {
 	glutInit(&argc, argv);
@@ -203,8 +207,8 @@ void reshapeHandler(int w, int h) {
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	gluLookAt(
-		player.subPosition.x + sin(player.submarineRotation * DEG2RAD) * zoom, player.subPosition.y + 8, player.subPosition.z + cos(player.submarineRotation * DEG2RAD) * zoom,
-		player.subPosition.x, player.subPosition.y, player.subPosition.z,
+		player.position.x + sin(player.submarineRotation * DEG2RAD) * zoom, player.position.y + 8, player.position.z + cos(player.submarineRotation * DEG2RAD) * zoom,
+		player.position.x, player.position.y, player.position.z,
 		0.0, 1.0, 0.0);
 }
 
@@ -222,12 +226,12 @@ void displayHandler(void) {
 
 
 	glPushMatrix();
-		glTranslatef(player.subPosition.x, player.subPosition.y, player.subPosition.z);
+		glTranslatef(player.position.x, player.position.y, player.position.z);
 		glRotatef(player.submarineRotation, 0, 1, 0);
 		drawSub(player);
 	glPopMatrix();
 
-
+	// Draw enemies
 	for (int i = 0; i < enemies.size() ; i++) {
 		glPushMatrix();
 			glTranslatef(enemies[i].position.x, enemies[i].position.y, enemies[i].position.z);
@@ -235,11 +239,17 @@ void displayHandler(void) {
 			drawSub(enemies[i]);
 		glPopMatrix();
 	}
-	
+
+	// Draw torpedos
+	for (int i = 0; i < torpedos.size(); i++) {
+		drawTorpedo(torpedos[i]);
+	}
+
+
 	glLoadIdentity();
 	gluLookAt(
-		player.subPosition.x + sin(player.submarineRotation * DEG2RAD) * zoom, player.subPosition.y + 8, player.subPosition.z + cos(player.submarineRotation * DEG2RAD) * zoom,
-		player.subPosition.x, player.subPosition.y, player.subPosition.z,
+		player.position.x + sin(player.submarineRotation * DEG2RAD) * zoom, player.position.y + 8, player.position.z + cos(player.submarineRotation * DEG2RAD) * zoom,
+		player.position.x, player.position.y, player.position.z,
 		0.0, 1.0, 0.0);
 	glutSwapBuffers();
 }
@@ -257,6 +267,9 @@ void keyboardInputHandler(unsigned char key, int x, int y) {
 		//esc
 	case 27:
 		glutDestroyWindow(mainWindowID);
+		break;
+	case 13:
+		newTorpedo(player);
 		break;
 	case '-':
 		player.speed -= 0.002;
@@ -329,15 +342,15 @@ void idle() {
 			player.backPropRotation += deltaTime * player.speed * 50;
 			player.leftPropRotation += deltaTime * player.speed * 50;
 			player.rightPropRotation += deltaTime * player.speed * 50;
-			player.subPosition.x -= deltaTime * player.speed * sinf(player.submarineRotation * DEG2RAD);
-			player.subPosition.z -= deltaTime * player.speed * cosf(player.submarineRotation * DEG2RAD);
+			player.position.x -= deltaTime * player.speed * sinf(player.submarineRotation * DEG2RAD);
+			player.position.z -= deltaTime * player.speed * cosf(player.submarineRotation * DEG2RAD);
 		}
 		if (isDownS) {
 			player.backPropRotation -= deltaTime * player.speed * 50;
 			player.leftPropRotation -= deltaTime * player.speed * 50;
 			player.rightPropRotation -= deltaTime * player.speed * 50;
-			player.subPosition.x += deltaTime * player.speed * sinf(player.submarineRotation * DEG2RAD);
-			player.subPosition.z += deltaTime * player.speed * cosf(player.submarineRotation * DEG2RAD);
+			player.position.x += deltaTime * player.speed * sinf(player.submarineRotation * DEG2RAD);
+			player.position.z += deltaTime * player.speed * cosf(player.submarineRotation * DEG2RAD);
 		}
 		glutPostRedisplay();
 	}
@@ -358,14 +371,14 @@ void idle() {
 	}
 	if (isDownSpace || isDownC) {
 		if (isDownSpace) {
-			player.subPosition.y += deltaTime * player.speed * fabs(player.rise_decline_angle / max_rise_angle);
+			player.position.y += deltaTime * player.speed * fabs(player.rise_decline_angle / max_rise_angle);
 			player.rise_decline_angle += deltaTime * 0.1;
 			if (player.rise_decline_angle > max_rise_angle) player.rise_decline_angle = max_rise_angle;
 		}
 		if (isDownC) {
-			player.subPosition.y -= deltaTime * player.speed * fabs(player.rise_decline_angle / min_decline_angle);
+			player.position.y -= deltaTime * player.speed * fabs(player.rise_decline_angle / min_decline_angle);
 			player.rise_decline_angle -= deltaTime * 0.1;
-			if (player.subPosition.y < minAltitude) player.subPosition.y = minAltitude;
+			if (player.position.y < minAltitude) player.position.y = minAltitude;
 			if (player.rise_decline_angle < min_decline_angle) player.rise_decline_angle = min_decline_angle;
 		}
 		player.backPropRotation += deltaTime * 0.2;
@@ -524,6 +537,14 @@ void drawPropellor(int pos, Player p) {
 	// Propellor END
 }
 
+void drawTorpedo(Torpedo t) {
+	glPushMatrix();
+		glTranslatef(t.position.x, t.position.y, t.position.z);
+		GLUquadricObj* body = gluNewQuadric();;
+		gluCylinder(body, 0.5, 0.5, 1, 8, 1);
+	glPopMatrix();
+}
+
 unsigned char* readTexel(const char * path) {
 	unsigned char* texel = (unsigned char*)malloc(2048 * 2048 * 3);;
 	// Read image to texel
@@ -598,12 +619,12 @@ bool testBlobCollision(void) {
 	float noiseScale = 0.05f;
 
 	for (int i = 0; i < ballList.size(); i++) {
-		distance = glm::distance(glm::vec3(player.subPosition.x, 0, player.subPosition.z), ballList[i].pos);
+		distance = glm::distance(glm::vec3(player.position.x, 0, player.position.z), ballList[i].pos);
 		PerlinNoise perl = PerlinNoise(1337);
-		float height = 3 * perl.noise(player.subPosition.x * noiseScale, player.subPosition.z * noiseScale);
+		float height = 3 * perl.noise(player.position.x * noiseScale, player.position.z * noiseScale);
 		// Collision detection
 
-		if (player.subPosition.y < ballList[i].height * exp(-(ballList[i].width * (distance * distance))) + height && ballList[i].height > 0) {
+		if (player.position.y < ballList[i].height * exp(-(ballList[i].width * (distance * distance))) + height && ballList[i].height > 0) {
 			selfDestruct();
 			return true;
 		}
@@ -611,6 +632,12 @@ bool testBlobCollision(void) {
 	return false;
 }
 
-void selfDestruct() {
+void newTorpedo(Player p) {
+	Torpedo newTorpedo;
+	newTorpedo.position = p.position;
+	newTorpedo.forward;
+	torpedos.push_back(newTorpedo);
+}
 
+void selfDestruct() {
 }
