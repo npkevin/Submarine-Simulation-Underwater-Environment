@@ -25,7 +25,7 @@ typedef struct Player
 	float speed = 0.01f;
 	float breakApart = 0.0f;
 	bool isDead = false;
-	glm::vec3 position = glm::vec3(0.0f, 1.0f, 0.0f);
+	glm::vec3 position = glm::vec3(0.0f, 2.0f, 0.0f);
 } Player;
 
 typedef struct Torpedo
@@ -51,6 +51,7 @@ void selfDestruct(Player *p);
 void newTorpedo(Player p, float a);
 void drawTorpedo(Torpedo t);
 bool torpedoCollision(void);
+bool submarineCollision(void);
 
 void drawSub(Player p);
 void drawPropellor(int pos, Player p);
@@ -228,6 +229,8 @@ void displayHandler(void) {
 
 	testBlobCollision();
 	torpedoCollision();
+	submarineCollision();
+
 
 	glMatrixMode(GL_MODELVIEW);
 
@@ -276,46 +279,54 @@ void mouseMotionHandler(int x, int y) {
 }
 
 void keyboardInputHandler(unsigned char key, int x, int y) {
-	switch (key) {
-		//esc
-	case 27:
-		glutDestroyWindow(mainWindowID);
-		break;
-	case 13:
-		newTorpedo(player, player.submarineRotation);
-		break;
-	case '-':
-		player.speed -= 0.002;
-		if (player.speed < minSpeed) player.speed = minSpeed;
-		printf("speed: %f\n", player.speed);
-		break;
-	case '=':
-		player.speed += 0.002;
-		if (player.speed > maxSpeed) player.speed = maxSpeed;
-		printf("speed: %f\n", player.speed);
-		break;
-	case 'w':
-		if (!isDownW) isDownW = true;
+	if (!player.isDead) {
+		switch (key) {
+			//esc
+		case 27:
+			glutDestroyWindow(mainWindowID);
+			break;
+		case 13:
+			newTorpedo(player, player.submarineRotation);
+			break;
+		case '-':
+			player.speed -= 0.002;
+			if (player.speed < minSpeed) player.speed = minSpeed;
+			printf("speed: %f\n", player.speed);
+			break;
+		case '=':
+			player.speed += 0.002;
+			if (player.speed > maxSpeed) player.speed = maxSpeed;
+			printf("speed: %f\n", player.speed);
+			break;
+		case 'w':
+			if (!isDownW) isDownW = true;
 
-		break;
-	case 's':
-		if (!isDownS) isDownS = true;
-		break;
-	case 'a':
-		if (!isDownA) isDownA = true;
-		break;
-	case 'd':
-		if (!isDownD) isDownD = true;
-		break;
-	case ' ':
-		if (!isDownSpace) isDownSpace = true;
-		break;
-	case 'c':
-		if (!isDownC) isDownC = true;
-		break;
-	case 'g':
-		if (!enemies[0].isDead) enemies[0].isDead = true;
-		else enemies[0].isDead = false;
+			break;
+		case 's':
+			if (!isDownS) isDownS = true;
+			break;
+		case 'a':
+			if (!isDownA) isDownA = true;
+			break;
+		case 'd':
+			if (!isDownD) isDownD = true;
+			break;
+		case ' ':
+			if (!isDownSpace) isDownSpace = true;
+			break;
+		case 'c':
+			if (!isDownC) isDownC = true;
+			break;
+		default:
+			break;
+		}
+	}
+	switch (key) {
+	case 'r':
+		player.isDead = false;
+		player.position = glm::vec3(0.0f, 2.0f, 0.0f);
+		player.breakApart = 0;
+		glutPostRedisplay();
 		break;
 	default:
 		break;
@@ -678,7 +689,6 @@ bool testBlobCollision(void) {
 }
 
 bool torpedoCollision(void) {
-	//gluCylinder(body, 0.5, 0.5, 1, 8, 1);
 	//Player Collision
 	for (int i = 0; i < torpedos.size(); i++) {
 		if (player.position.y < torpedos[i].position.y + 1.5 && player.position.y > torpedos[i].position.y - 1.5 && 
@@ -703,11 +713,21 @@ bool torpedoCollision(void) {
 	return false;
 }
 
+bool submarineCollision(void) {
+	for (int j = 0; j < enemies.size(); j++) {
+		if (enemies[j].position.y < player.position.y + 2 && enemies[j].position.y > player.position.y - 2 &&
+			enemies[j].position.x < player.position.x + 2 && enemies[j].position.x > player.position.x - 2 &&
+			enemies[j].position.z < player.position.z + 4 && enemies[j].position.z > player.position.z - 4 && !enemies[j].isDead) {
+			enemies[j].isDead = true;
+			player.isDead = true;
+			return true;
+		}
+	}
+}
 
 
 void selfDestruct(Player *p) {
 	p->breakApart += deltaTime * 0.005;
-	printf(" %f\n", p->breakApart);
 	glutPostRedisplay();
 }
 void newTorpedo(Player p, float angle) {
