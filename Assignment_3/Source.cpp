@@ -29,6 +29,8 @@ typedef struct Player
 	bool isEnemy = true;
 	float sight = 50.0f;
 	int fireCooldown = 0;
+	float periscopeRotation = 0;
+	float periscopeElavation = 0;
 	 
 	glm::vec3 getForward() {
 		glm::vec3 forward = glm::vec3(glm::vec3(sinf(submarineRotation * DEG2RAD), 0, cosf(submarineRotation * DEG2RAD)));
@@ -61,16 +63,16 @@ void idle();
 void loadAllTextures(void);
 unsigned char* readTexel(const char* path);
 void pushPremadeBloblist(void);
-bool testBlobCollision(void);
+void testBlobCollision(void);
 void selfDestruct(Player *p);
 void newTorpedo(Player p);
 void drawTorpedo(Torpedo t);
-bool torpedoCollision(void);
-bool submarineCollision(void);
+void torpedoCollision(void);
+void submarineCollision(void);
 void boxCollision(void);
 void drawBarrel(Crate box);
 void reset();
-void drawPeriscope(void);
+void drawPeriscope(Player p);
 
 void drawSub(Player p);
 void drawPropellor(int pos, Player p);
@@ -95,6 +97,10 @@ bool isDownA = false;
 bool isDownD = false;
 bool isDownSpace = false;
 bool isDownC = false;
+bool isDownUp = false;
+bool isDownDown = false;
+bool isDownLeft = false;
+bool isDownRight = false;
 
 
 // Player
@@ -327,8 +333,8 @@ void displayHandler(void) {
 
 	if (FirstPersonMode) {
 		gluLookAt(
-			player.position.x, player.position.y + 3, player.position.z,
-			player.position.x - sin(player.submarineRotation * DEG2RAD) * zoom , player.position.y, player.position.z - cos(player.submarineRotation * DEG2RAD) * zoom,
+			player.position.x, player.position.y + 3 + player.periscopeElavation, player.position.z,
+			player.position.x - sin((player.submarineRotation + player.periscopeRotation) * DEG2RAD) * zoom , player.position.y + 3 , player.position.z - cos((player.submarineRotation + player.periscopeRotation) * DEG2RAD) * zoom,
 			0.0, 1.0, 0.0);
 	}
 	else {
@@ -368,6 +374,10 @@ void functionKeys(int key, int x, int y)
 		printf("=/- Key: Change Speed\n");
 		printf("C Key: Lower the submarine\n");
 		printf("Spacebar: Raise the submarine\n");
+		printf("K/M Keys: Alter elevation of periscope\n");
+		printf("</> Keys: Horizontal Periscope Rotation\n");
+		printf("V Key: Periscope View (if periscope elavation is high enough)\n");
+		printf("R Key: Respawn Player\n");
 
 	}
 }
@@ -412,7 +422,25 @@ void keyboardInputHandler(unsigned char key, int x, int y) {
 			if (!isDownC) isDownC = true;
 			break;
 		case 'v':
-			FirstPersonMode = !FirstPersonMode;
+			if (FirstPersonMode) {
+				player.submarineRotation += player.periscopeRotation;
+				player.periscopeRotation = 0;
+				
+			}
+			if ( player.periscopeElavation > 0.3)
+				FirstPersonMode = !FirstPersonMode;
+			break;
+		case ',':
+			if (!isDownLeft) isDownLeft = true;
+			break;
+		case '.':
+			if (!isDownRight) isDownRight = true;
+			break;
+		case 'm':
+			if (!isDownDown) isDownDown = true;
+			break;
+		case 'k':
+			if (!isDownUp) isDownUp = true;
 			break;
 		default:
 			break;
@@ -447,6 +475,18 @@ void keyboardUp(unsigned char key, int x, int y) {
 		break;
 	case 'c':
 		if (isDownC) isDownC = false;
+		break;
+	case 'm':
+		if (isDownDown) isDownDown = false;
+		break;
+	case 'k':
+		if (isDownUp) isDownUp = false;
+		break;
+	case '.':
+		if (isDownRight) isDownRight = false;
+		break;
+	case ',':
+		if (isDownLeft) isDownLeft = false;
 		break;
 	default:
 		break;
@@ -491,7 +531,7 @@ void idle() {
 		glutPostRedisplay();
 	}
 	if (isDownSpace || isDownC && !player.isDead) {
-		if (isDownSpace) {
+		if (isDownSpace && !player.isDead) {
 			player.position.y += deltaTime * player.speed * fabs(player.rise_decline_angle / max_rise_angle);
 			player.rise_decline_angle += deltaTime * 0.1;
 			if (player.rise_decline_angle > max_rise_angle) player.rise_decline_angle = max_rise_angle;
@@ -520,6 +560,28 @@ void idle() {
 			glutPostRedisplay();
 
 		}
+	}
+
+	if (isDownLeft) {
+		if (player.periscopeRotation < 120)
+			player.periscopeRotation += 0.1 * deltaTime;
+	}
+	else if (isDownRight) {
+		if (player.periscopeRotation > -120)
+			player.periscopeRotation -= 0.1 * deltaTime;
+	}
+	else if (isDownUp) {
+		if (player.periscopeElavation < 0.5)
+			player.periscopeElavation += 0.005 * deltaTime;
+	}
+	else if (isDownDown) {
+		if (player.periscopeElavation > 0.3) {
+			FirstPersonMode = false;
+			player.submarineRotation += player.periscopeRotation;
+			player.periscopeRotation = 0;
+		}
+		if (player.periscopeElavation > -0.5)
+			player.periscopeElavation -= 0.005 * deltaTime;
 	}
 
 	// Limits
@@ -610,21 +672,14 @@ void drawBarrel(Crate box) {
 	glPushMatrix();
 	//redmetalTexture_id
 		glTranslatef(box.position.x, box.position.y - 3, box.position.z);
-		//glEnable(GL_TEXTURE_GEN_S); //enable texture coordinate generation
-		//glEnable(GL_TEXTURE_GEN_T);
 		glBindTexture(GL_TEXTURE_2D, crateTexture_id);
-		//glutSolidCube(6);
-		//glBindTexture(GL_TEXTURE_2D, redmetalTexture_id);
 		glRotatef(-90, 1, 0, 0);
 		GLUquadricObj* body = gluNewQuadric();
 		gluQuadricTexture(body, GL_TRUE);
 		gluCylinder(body, 3, 3, 6, 16, 16);
-		//glTranslatef(, box.position.y - 5,);
-		//glRotatef(90, 1, 0, 0);
 		glTranslatef(0, 0, 6);
 		gluDisk(body, 0,3, 16 , 20 );
-		//glDisable(GL_TEXTURE_GEN_S); //enable texture coordinate generation
-		//glDisable(GL_TEXTURE_GEN_T);
+
 	glPopMatrix();
 }
 
@@ -662,7 +717,7 @@ void drawSub(Player p) {
 				glBindTexture(GL_TEXTURE_2D, metalTexture_id);
 			}
 
-			drawPeriscope();
+			drawPeriscope(p);
 
 			// Select metal as Texture
 			if (p.isEnemy) {
@@ -817,10 +872,10 @@ void drawTorpedo(Torpedo t) {
 	glPopMatrix();
 }
 
-void drawPeriscope() {
+void drawPeriscope(Player p) {
 	glPushMatrix();
 		glRotatef(-90.0f, 1.0, 0.0f, 0.0f);
-		glTranslatef(0.0f, -0.5f, 0.0f);
+		glTranslatef(0.0f, -0.5f , 0.0f + p.periscopeElavation);
 		GLUquadricObj* body = gluNewQuadric();
 		gluCylinder(body, 0.1, 0.1, 2, 8, 1);
 
@@ -917,7 +972,7 @@ void pushPremadeBloblist() {
 	UpdateMesh(&terrain, ballList);
 }
 
-bool testBlobCollision(void) {
+void testBlobCollision(void) {
 	float distance;
 	float noiseScale = 0.05f;
 
@@ -929,27 +984,24 @@ bool testBlobCollision(void) {
 
 		if (player.position.y < ballList[i].height * exp(-(ballList[i].width * (distance * distance))) + height && ballList[i].height > 0) {
 			player.isDead = true;
-			return true;
 		}
+		/*
 		for (int j = 0; j < enemies.size(); j++) {
 			if (enemies[j].position.y < ballList[i].height * exp(-(ballList[i].width * (distance * distance))) + height && ballList[i].height > 0) {
 				enemies[j].isDead = true;
-				return true;
 			}
-		}
+		}*/
 
 	}
-	return false;
 }
 
-bool torpedoCollision(void) {
+void torpedoCollision(void) {
 	//Player Collision
 	for (int i = 0; i < torpedos.size(); i++) {
 		if (player.position.y < torpedos[i].position.y + 1.5 && player.position.y > torpedos[i].position.y - 1.5 && 
 			player.position.x < torpedos[i].position.x + 1 && player.position.x > torpedos[i].position.x - 1 &&
 			player.position.z < torpedos[i].position.z + 1 && player.position.z > torpedos[i].position.z - 1) {
 			player.isDead = true;
-			return true;
 		}
 	}
 	//Enemy Collision
@@ -960,21 +1012,18 @@ bool torpedoCollision(void) {
 				enemies[j].position.z < torpedos[i].position.z + 1 && enemies[j].position.z > torpedos[i].position.z - 1 && !enemies[j].isDead) {
 				enemies[j].isDead = true;
 				torpedos.erase(torpedos.begin() + i);
-				return true;
 			}
 		}
 	}
-	return false;
 }
 
-bool submarineCollision(void) {
+void submarineCollision(void) {
 	for (int j = 0; j < enemies.size(); j++) {
 		if (enemies[j].position.y < player.position.y + 2 && enemies[j].position.y > player.position.y - 2 &&
 			enemies[j].position.x < player.position.x + 2 && enemies[j].position.x > player.position.x - 2 &&
 			enemies[j].position.z < player.position.z + 4 && enemies[j].position.z > player.position.z - 4 && !enemies[j].isDead) {
 			enemies[j].isDead = true;
 			player.isDead = true;
-			return true;
 		}
 	}
 }
