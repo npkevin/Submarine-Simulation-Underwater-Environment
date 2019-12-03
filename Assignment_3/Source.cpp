@@ -50,6 +50,7 @@ void reshapeHandler(int, int);
 void keyboardInputHandler(unsigned char, int, int);
 void mouseButtonHandler(int, int, int, int);
 void mouseMotionHandler(int, int);
+void functionKeys(int key, int x, int y);
 void keyboardUp(unsigned char key, int x, int y);
 void idle();
 void loadAllTextures(void);
@@ -165,6 +166,7 @@ int main(int argc, char** argv) {
 	glutMotionFunc(mouseMotionHandler);
 	glutKeyboardFunc(keyboardInputHandler);
 	glutKeyboardUpFunc(keyboardUp);
+	glutSpecialFunc(functionKeys);
 
 	// Enter Main loop
 	glutMainLoop();
@@ -302,6 +304,22 @@ void mouseButtonHandler(int button, int state, int x, int y) {
 void mouseMotionHandler(int x, int y) {
 
 	
+}
+
+
+void functionKeys(int key, int x, int y)
+{
+	// Help key
+	if (key == GLUT_KEY_F1)
+	{
+		printf("A/D Key: Rotate\n");
+		printf("W/S Key: Move Forward/Backwards\n");
+		printf("Enter Key: Shoot Torpedo\n");
+		printf("=/- Key: Change Speed\n");
+		printf("C Key: Lower the submarine\n");
+		printf("Spacebar: Raise the submarine\n");
+
+	}
 }
 
 void keyboardInputHandler(unsigned char key, int x, int y) {
