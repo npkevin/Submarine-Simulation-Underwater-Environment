@@ -68,7 +68,8 @@ void drawTorpedo(Torpedo t);
 bool torpedoCollision(void);
 bool submarineCollision(void);
 void boxCollision(void);
-void drawBox(Crate box);
+void drawBarrel(Crate box);
+void reset();
 
 void drawSub(Player p);
 void drawPropellor(int pos, Player p);
@@ -82,6 +83,8 @@ GLuint glassTexture_id;
 unsigned char* glass;
 GLuint redmetalTexture_id;
 unsigned char* rmetal;
+GLuint crateTexture_id;
+unsigned char* crate;
 
 
 // keyDown flags
@@ -314,7 +317,7 @@ void displayHandler(void) {
 
 	for (int i = 0; i < boxList.size(); i++) {
 		glPushMatrix();
-		drawBox(boxList[i]);
+		drawBarrel(boxList[i]);
 		glPopMatrix();
 	}
 
@@ -397,9 +400,7 @@ void keyboardInputHandler(unsigned char key, int x, int y) {
 	}
 	switch (key) {
 	case 'r':
-		player.isDead = false;
-		player.position = glm::vec3(0.0f, 2.0f, 0.0f);
-		player.breakApart = 0;
+		reset();
 		glutPostRedisplay();
 		break;
 	default:
@@ -554,6 +555,9 @@ void idle() {
 	// Check if player is dead
 	if (player.isDead) {
 		selfDestruct(&player);
+		if (player.breakApart > 10) {
+			reset();
+		}
 	}
 	// Check if other subs are dead
 	for (int i = 0; i < enemies.size(); i++) {
@@ -582,10 +586,25 @@ void idle() {
 	
 }
 
-void drawBox(Crate box) {
+void drawBarrel(Crate box) {
 	glPushMatrix();
-		glTranslatef(box.position.x, box.position.y, box.position.z);
-		glutSolidCube(6);
+	//redmetalTexture_id
+		glTranslatef(box.position.x, box.position.y - 3, box.position.z);
+		//glEnable(GL_TEXTURE_GEN_S); //enable texture coordinate generation
+		//glEnable(GL_TEXTURE_GEN_T);
+		glBindTexture(GL_TEXTURE_2D, crateTexture_id);
+		//glutSolidCube(6);
+		//glBindTexture(GL_TEXTURE_2D, redmetalTexture_id);
+		glRotatef(-90, 1, 0, 0);
+		GLUquadricObj* body = gluNewQuadric();
+		gluQuadricTexture(body, GL_TRUE);
+		gluCylinder(body, 3, 3, 6, 16, 16);
+		//glTranslatef(, box.position.y - 5,);
+		//glRotatef(90, 1, 0, 0);
+		glTranslatef(0, 0, 6);
+		gluDisk(body, 0,3, 16 , 20 );
+		//glDisable(GL_TEXTURE_GEN_S); //enable texture coordinate generation
+		//glDisable(GL_TEXTURE_GEN_T);
 	glPopMatrix();
 }
 
@@ -804,6 +823,14 @@ void loadAllTextures(void) {
 	rmetal = readTexel("./textures/redmetal.bmp");
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 300, 300, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, rmetal);
+
+
+	//crate
+	glGenTextures(1, &crateTexture_id);
+	glBindTexture(GL_TEXTURE_2D, crateTexture_id);
+	crate = readTexel("./textures/crate.bmp");
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 1024, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, crate);
 }
 
 void pushPremadeBloblist() {
@@ -904,10 +931,10 @@ void boxCollision(void) {
 	for (int j = 0; j < boxList.size(); j++) {
 		if (boxList[j].position.y < player.position.y + 3 && boxList[j].position.y > player.position.y - 3 &&
 			boxList[j].position.x < player.position.x + 3 && boxList[j].position.x > player.position.x - 3 &&
-			boxList[j].position.z < player.position.z + 3 && boxList[j].position.z > player.position.z - 3 && !enemies[j].isDead) {
+			boxList[j].position.z < player.position.z + 3 && boxList[j].position.z > player.position.z - 3) {
 			player.isDead = true;
 		}
-
+		
 		for (int i = 0; i < enemies.size(); i++) {
 			if (boxList[j].position.y < enemies[i].position.y + 3 && boxList[j].position.y > enemies[i].position.y - 3 &&
 				boxList[j].position.x < enemies[i].position.x + 3 && boxList[j].position.x > enemies[i].position.x - 3 &&
@@ -915,7 +942,7 @@ void boxCollision(void) {
 				enemies[i].isDead = true;
 			}
 		}
-
+		
 	}
 }
 
@@ -932,4 +959,11 @@ void newTorpedo(Player p) {
 	newTorpedo.position = p.position + newTorpedo.forward * 3.0f;
 	newTorpedo.angle = p.submarineRotation;
 	torpedos.push_back(newTorpedo);
+}
+
+void reset() {
+	player.isDead = false;
+	player.position = glm::vec3(128, 2, -50);
+	player.breakApart = 0;
+	player.submarineRotation = 0;
 }
