@@ -117,6 +117,7 @@ int prevTime = 0;
 bool mmDown = false;
 bool rmDown = false;
 bool lmDown = false;
+bool aiOn = true;
 
 std::vector<Crate> boxList;
 
@@ -378,7 +379,11 @@ void functionKeys(int key, int x, int y)
 		printf("</> Keys: Horizontal Periscope Rotation\n");
 		printf("V Key: Periscope View (if periscope elavation is high enough)\n");
 		printf("R Key: Respawn Player\n");
+		printf("F2 Key: Disable/Enable Enemy AI\n");
 
+	}
+	if (key == GLUT_KEY_F2) {
+		aiOn = !aiOn;
 	}
 }
 
@@ -593,13 +598,13 @@ void idle() {
 	if (player.rightPropRotation < 0) player.rightPropRotation = 360;
 
 	// enemySubmarine AI (very dumb), every 5 seconds change direction
-	if ((float)now - npcAiUpdateTime > timer) {
+	if ((float)now - npcAiUpdateTime > timer && aiOn) {
 		npcAiUpdateTime = now;
 		for (int i = 0; i < enemies.size(); i++) {
 			if (!enemies[i].isDead) enemies[i].submarineRotation = (((double)rand() / (RAND_MAX)) + 1) * 360;
 		}
 	}
-	else {
+	else if (aiOn) {
 		for (int i = 0; i < enemies.size(); i++) {
 
 			enemies[i].backPropRotation += deltaTime * enemies[i].speed * 50;
@@ -652,7 +657,7 @@ void idle() {
 			float randomZPos = (rand() % (156 - 100 + 1)) + 100;
 			float randomYPos = (rand() % (5 - 3 + 1)) + 5;
 			Player npc;
-			printf("%f %f %f \n", randomXPos, randomYPos, randomZPos);
+			//printf("%f %f %f \n", randomXPos, randomYPos, randomZPos);
 			npc.position = glm::vec3(randomXPos, randomYPos, -randomZPos);
 			enemies.push_back(npc);
 		}
@@ -1005,13 +1010,14 @@ void torpedoCollision(void) {
 		}
 	}
 	//Enemy Collision
-	for (int i = 0; i < torpedos.size(); i++) {
-		for (int j = 0; j < enemies.size(); j++) {
+	for (int j = 0; j < enemies.size(); j++) {
+		for (int i = 0; i < torpedos.size(); i++) {
 			if (enemies[j].position.y < torpedos[i].position.y + 1.5 && enemies[j].position.y > torpedos[i].position.y - 1.5 &&
 				enemies[j].position.x < torpedos[i].position.x + 1 && enemies[j].position.x > torpedos[i].position.x - 1 &&
 				enemies[j].position.z < torpedos[i].position.z + 1 && enemies[j].position.z > torpedos[i].position.z - 1 && !enemies[j].isDead) {
+				//printf("%d, %i \n", j, i);
+				torpedos.erase(torpedos.begin() + i );
 				enemies[j].isDead = true;
-				torpedos.erase(torpedos.begin() + i);
 			}
 		}
 	}
