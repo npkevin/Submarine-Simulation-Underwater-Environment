@@ -44,6 +44,11 @@ typedef struct Torpedo
 	float angle;
 } Torpedo;
 
+typedef struct Crate
+{
+	glm::vec3 position;
+} Crate;
+
 void initOpenGL(int, int);
 void displayHandler(void);
 void reshapeHandler(int, int);
@@ -62,6 +67,8 @@ void newTorpedo(Player p);
 void drawTorpedo(Torpedo t);
 bool torpedoCollision(void);
 bool submarineCollision(void);
+void boxCollision(void);
+void drawBox(Crate box);
 
 void drawSub(Player p);
 void drawPropellor(int pos, Player p);
@@ -99,6 +106,9 @@ int prevTime = 0;
 bool mmDown = false;
 bool rmDown = false;
 bool lmDown = false;
+
+std::vector<Crate> boxList;
+
 
 std::vector<Metaball> ballList;
 int ballIndex = 0;
@@ -218,14 +228,27 @@ void initOpenGL(int w, int h) {
 	player.isEnemy = false;
 	player.speed = 0.02;
 
+	// Premade Objects
+	Crate box1, box2, box3,box4, box5, box6, box7, box8;
+	box1.position = glm::vec3(40, 2.5, -50);
+	box2.position = glm::vec3(140, 2.5, -120);
+	box3.position = glm::vec3(130, 2.5, -70);
+	box4.position = glm::vec3(50, 2.5, -130);
+	box5.position = glm::vec3(10, 2.5, -210);
+	box6.position = glm::vec3(80, 2.5, -150);
+	box7.position = glm::vec3(240, 2.5, -210);
+	box8.position = glm::vec3(230, 4.4, -150);
+	boxList.push_back(box1); boxList.push_back(box2); boxList.push_back(box3); boxList.push_back(box4); boxList.push_back(box5); boxList.push_back(box6);
+	boxList.push_back(box7); boxList.push_back(box8);
+
 	// Premade enemy list
 	Player npc1, npc2, npc3, npc4, npc5, npc6;
-	npc1.position = glm::vec3(120, 3, -120);
-	npc2.position = glm::vec3(125, 3, -105);
-	npc3.position = glm::vec3(130, 3, -120);
-	npc4.position = glm::vec3(135, 3, -125);
-	npc5.position = glm::vec3(120, 2, -130);
-	npc6.position = glm::vec3(125, 3, -155);
+	npc1.position = glm::vec3(120, 5, -120);
+	npc2.position = glm::vec3(125, 5, -105);
+	npc3.position = glm::vec3(130, 5, -120);
+	npc4.position = glm::vec3(135, 6, -125);
+	npc5.position = glm::vec3(120, 7, -130);
+	npc6.position = glm::vec3(125, 7, -155);
 	enemies.push_back(npc1); 
 	enemies.push_back(npc2); enemies.push_back(npc3); enemies.push_back(npc4); enemies.push_back(npc5); enemies.push_back(npc6);
 
@@ -258,6 +281,7 @@ void displayHandler(void) {
 	testBlobCollision();
 	torpedoCollision();
 	submarineCollision();
+	boxCollision();
 
 
 	glMatrixMode(GL_MODELVIEW);
@@ -287,6 +311,12 @@ void displayHandler(void) {
 		drawTorpedo(torpedos[i]);
 	}
 
+
+	for (int i = 0; i < boxList.size(); i++) {
+		glPushMatrix();
+		drawBox(boxList[i]);
+		glPopMatrix();
+	}
 
 	glLoadIdentity();
 	gluLookAt(
@@ -552,6 +582,13 @@ void idle() {
 	
 }
 
+void drawBox(Crate box) {
+	glPushMatrix();
+		glTranslatef(box.position.x, box.position.y, box.position.z);
+		glutSolidCube(6);
+	glPopMatrix();
+}
+
 void drawSub(Player p) {
 	glPushMatrix();
 	GLUquadricObj* body = gluNewQuadric();
@@ -815,6 +852,13 @@ bool testBlobCollision(void) {
 			player.isDead = true;
 			return true;
 		}
+		for (int j = 0; j < enemies.size(); j++) {
+			if (enemies[j].position.y < ballList[i].height * exp(-(ballList[i].width * (distance * distance))) + height && ballList[i].height > 0) {
+				enemies[j].isDead = true;
+				return true;
+			}
+		}
+
 	}
 	return false;
 }
@@ -855,6 +899,26 @@ bool submarineCollision(void) {
 		}
 	}
 }
+
+void boxCollision(void) {
+	for (int j = 0; j < boxList.size(); j++) {
+		if (boxList[j].position.y < player.position.y + 3 && boxList[j].position.y > player.position.y - 3 &&
+			boxList[j].position.x < player.position.x + 3 && boxList[j].position.x > player.position.x - 3 &&
+			boxList[j].position.z < player.position.z + 3 && boxList[j].position.z > player.position.z - 3 && !enemies[j].isDead) {
+			player.isDead = true;
+		}
+
+		for (int i = 0; i < enemies.size(); i++) {
+			if (boxList[j].position.y < enemies[i].position.y + 3 && boxList[j].position.y > enemies[i].position.y - 3 &&
+				boxList[j].position.x < enemies[i].position.x + 3 && boxList[j].position.x > enemies[i].position.x - 3 &&
+				boxList[j].position.z < enemies[i].position.z + 3 && boxList[j].position.z > enemies[i].position.z - 3 && !enemies[j].isDead) {
+				enemies[i].isDead = true;
+			}
+		}
+
+	}
+}
+
 
 void selfDestruct(Player *p) {
 	p->breakApart += deltaTime * 0.005;
