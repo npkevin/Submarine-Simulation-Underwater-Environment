@@ -70,6 +70,7 @@ bool submarineCollision(void);
 void boxCollision(void);
 void drawBarrel(Crate box);
 void reset();
+void drawPeriscope(void);
 
 void drawSub(Player p);
 void drawPropellor(int pos, Player p);
@@ -100,6 +101,7 @@ bool isDownC = false;
 Player player;
 std::vector<Player> enemies;
 std::vector<Torpedo> torpedos;
+bool FirstPersonMode = false;
 
 
 // Other
@@ -322,15 +324,31 @@ void displayHandler(void) {
 	}
 
 	glLoadIdentity();
-	gluLookAt(
-		player.position.x + sin(player.submarineRotation * DEG2RAD) * zoom, player.position.y + 9, player.position.z + cos(player.submarineRotation * DEG2RAD) * zoom,
-		player.position.x, player.position.y, player.position.z,
-		0.0, 1.0, 0.0);
+
+	if (FirstPersonMode) {
+		gluLookAt(
+			player.position.x, player.position.y + 3, player.position.z,
+			player.position.x - sin(player.submarineRotation * DEG2RAD) * zoom , player.position.y, player.position.z - cos(player.submarineRotation * DEG2RAD) * zoom,
+			0.0, 1.0, 0.0);
+	}
+	else {
+		gluLookAt(
+			player.position.x + sin(player.submarineRotation * DEG2RAD) * zoom, player.position.y + 9, player.position.z + cos(player.submarineRotation * DEG2RAD) * zoom,
+			player.position.x, player.position.y, player.position.z,
+			0.0, 1.0, 0.0);
+	}
+	
 	glutSwapBuffers();
 }
 // state:0 == keyDown
 void mouseButtonHandler(int button, int state, int x, int y) {
 
+	if (button == 3 && state == 1) {
+		zoom -= 0.5;
+	}
+	else if (button == 4 && state == 1) {
+		zoom += 0.5;
+	}
 	
 }
 
@@ -338,7 +356,6 @@ void mouseMotionHandler(int x, int y) {
 
 	
 }
-
 
 void functionKeys(int key, int x, int y)
 {
@@ -393,6 +410,9 @@ void keyboardInputHandler(unsigned char key, int x, int y) {
 			break;
 		case 'c':
 			if (!isDownC) isDownC = true;
+			break;
+		case 'v':
+			FirstPersonMode = !FirstPersonMode;
 			break;
 		default:
 			break;
@@ -627,11 +647,13 @@ void drawSub(Player p) {
 		gluSphere(body, explosion, 16, 16);
 		
 	}
+		
 		glPushMatrix();
 			// Body
 			glRotatef(p.rise_decline_angle, 1, 0, 0);
 			glTranslatef(0, 1 - p.breakApart, 0);
 			glScalef(1.0F, 1.0F, 2.0F);
+
 			// Select metal as Texture
 			if (p.isEnemy) {
 				glBindTexture(GL_TEXTURE_2D, redmetalTexture_id);
@@ -639,11 +661,25 @@ void drawSub(Player p) {
 			else {
 				glBindTexture(GL_TEXTURE_2D, metalTexture_id);
 			}
+
+			drawPeriscope();
+
+			// Select metal as Texture
+			if (p.isEnemy) {
+				glBindTexture(GL_TEXTURE_2D, redmetalTexture_id);
+			}
+			else {
+				glBindTexture(GL_TEXTURE_2D, metalTexture_id);
+			}
+			
 			//GLUquadricObj* body = gluNewQuadric();
 			gluQuadricTexture(body, GL_TRUE);
 			gluSphere(body, 1.0F, 16, 16);
 
 			glTranslatef(0, 0, -0.1);
+
+			
+
 			drawPropellor(0, p);
 
 			// Window
@@ -778,6 +814,22 @@ void drawTorpedo(Torpedo t) {
 		GLUquadricObj* body = gluNewQuadric();
 		gluQuadricTexture(body, GL_TRUE);
 		gluCylinder(body, 0.2, 0.2, 2, 4, 1);
+	glPopMatrix();
+}
+
+void drawPeriscope() {
+	glPushMatrix();
+		glRotatef(-90.0f, 1.0, 0.0f, 0.0f);
+		glTranslatef(0.0f, -0.5f, 0.0f);
+		GLUquadricObj* body = gluNewQuadric();
+		gluCylinder(body, 0.1, 0.1, 2, 8, 1);
+
+		glBindTexture(GL_TEXTURE_2D, glassTexture_id);
+		glTranslatef(0.0f, 0.0f, 2.0f);
+		GLUquadricObj* head = gluNewQuadric();
+		gluQuadricTexture(head, GL_TRUE);
+		gluSphere(head, 0.2f, 4, 4);
+
 	glPopMatrix();
 }
 
